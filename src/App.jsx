@@ -1,106 +1,89 @@
-import { useState, useEffect } from 'react';
-import Lenis from '@studio-freight/lenis';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useEffect } from "react";
+import Lenis from "@studio-freight/lenis";
+import { AnimatePresence } from "framer-motion";
 
-// Hooks & Globals
-import { AudioProvider } from './hooks/useAudio.jsx';
-import CustomCursor from './components/CustomCursor';
-import ProgressBar from './components/ProgressBar';
+// --- COMPONENTS ---
+import Preloader from "./components/Preloader";
+import CustomCursor from "./components/CustomCursor";
 
-// Scenes (to be created)
-import Preloader from './components/Preloader';
-import HeroSection from './components/HeroSection'; // Scene 1
-import GazeSection from './components/GazeSection'; // Scene 2
-import CanvasSection from './components/CanvasSection'; // Scene 3
-import DualitySection from './components/DualitySection'; // Scene 4
-import EnergySection from './components/EnergySection'; // Scene 5
-import SpookySection from './components/SpookySection'; // Scene 6
-import MultiverseSection from './components/MultiverseSection'; // Scene 7
-import ClimaxSection from './components/ClimaxSection'; // Scene 8
-import OutroSection from './components/OutroSection'; // Scene 9
-import EndSection from './components/EndSection'; // Scene 10
+// --- SECTIONS ---
+import Hero from "./components/sections/Hero";           // Escena 1: Committed
+import GazeSection from "./components/sections/GazeSection";      // Escena 2: The Gaze
+import CanvasSection from "./components/sections/CanvasSection";  // Escena 3: Art
+import DualitySection from "./components/sections/DualitySection"; // Escena 4: HIM/Deftones
+import EnergySection from "./components/sections/EnergySection";   // Escena 5: Conciertos
+import SpookySection from "./components/sections/SpookySection";   // Escena 6: Halloween
+import MultiverseSection from "./components/sections/MultiverseSection"; // Escena 7: Glitch
+import Climax from "./components/sections/Climax";                 // Escena 8: Editorial
+import OutroSection from "./components/sections/OutroSection";     // Escena 9 y 10: Final
 
-gsap.registerPlugin(ScrollTrigger);
+import { useStore } from "./store/useStore";
 
 function App() {
-  const [loading, setLoading] = useState(true);
-  const [scrollProgress, setScrollProgress] = useState(0);
+    const { isLoading } = useStore();
 
-  useEffect(() => {
-    // Only init Lenis if not loading
-    if (loading) return;
+    useEffect(() => {
+        // Manual Lenis implementation for React 19 / @studio-freight/lenis compatibility
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            orientation: 'vertical',
+            gestureOrientation: 'vertical',
+            smoothWheel: true,
+        });
 
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      direction: 'vertical',
-      smoothWheel: true,
-      smoothTouch: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 1.5,
-    });
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
 
-    lenis.on('scroll', ({ scroll }) => {
-      ScrollTrigger.update();
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      const p = h > 0 ? (scroll / h) * 100 : 0;
-      setScrollProgress(Math.min(100, Math.max(0, p)));
-    });
+        requestAnimationFrame(raf);
 
-    let rafId = 0;
-    const raf = (time) => {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    };
-    rafId = requestAnimationFrame(raf);
+        return () => {
+            lenis.destroy();
+        };
+    }, []);
 
-    return () => {
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-    };
-  }, [loading]);
+    return (
+        <div className="relative font-sans bg-vania-black text-white selection:bg-neon-orange selection:text-white cursor-none">
+            <CustomCursor />
 
-  const handlePreloaderComplete = () => {
-    // Small delay to ensure exit animation finishes visually if needed
-    setTimeout(() => {
-      setLoading(false);
-      // Force refresh ScrollTrigger after DOM change
-      setTimeout(() => ScrollTrigger.refresh(), 100);
-    }, 100);
-  };
+            <AnimatePresence mode="wait">
+                {isLoading && <Preloader key="preloader" />}
+            </AnimatePresence>
 
-  return (
-    <AudioProvider>
-      <div className="antialiased min-h-screen bg-[var(--black)] text-[var(--white)] selection:bg-white selection:text-black">
+            {!isLoading && (
+                <main className="w-full relative z-0">
+                    {/* 1. HERO (Committed) */}
+                    <Hero />
 
-        <CustomCursor />
+                    {/* 2. THE GAZE */}
+                    <GazeSection />
 
-        {loading ? (
-          <Preloader onComplete={handlePreloaderComplete} />
-        ) : (
-          <>
-            <div className="grain-overlay" />
+                    {/* 3. CANVAS (Art) */}
+                    <CanvasSection />
 
-            <main className="relative w-full">
-              <HeroSection />
-              <GazeSection />
-              <CanvasSection />
-              <DualitySection />
-              <EnergySection />
-              <SpookySection />
-              <MultiverseSection />
-              <ClimaxSection />
-              <OutroSection />
-              <EndSection />
-            </main>
+                    {/* 4. DUALITY (HIM vs Deftones) */}
+                    <DualitySection />
 
-            <ProgressBar scrollProgress={scrollProgress} />
-          </>
-        )}
-      </div>
-    </AudioProvider>
-  );
+                    {/* 5. ENERGY (Zen & Libido) */}
+                    <EnergySection />
+
+                    {/* 6. SPOOKY SEASON (Halloween) */}
+                    <SpookySection />
+
+                    {/* 7. MULTIVERSE (Cute -> Horror) */}
+                    <MultiverseSection />
+
+                    {/* 8. CLIMAX (The Photo) */}
+                    <Climax />
+
+                    {/* 9 & 10. OUTRO (Memories + End) */}
+                    <OutroSection />
+                </main>
+            )}
+        </div>
+    );
 }
 
 export default App;

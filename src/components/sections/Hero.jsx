@@ -1,99 +1,56 @@
-import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import VerticalCard from '../VerticalCard';
+import { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { content } from "../../data/content";
 
-/**
- * Hero Section - "COMMITTED"
- * Editorial Split Design
- * 
- * Layout: 40% Text (left) | 60% Image (right)
- * Background: Blurred image overlay
- * Animation: Floating image with GSAP
- */
-const Hero = ({ data }) => {
+gsap.registerPlugin(ScrollTrigger);
+
+const Hero = () => {
+    const containerRef = useRef(null);
+    const textRef = useRef(null);
     const imageRef = useRef(null);
-    const cookyRef = useRef(null);
 
     useEffect(() => {
-        // Floating animation for the image
-        gsap.to(imageRef.current, {
-            y: -20,
-            duration: 3,
-            repeat: -1,
-            yoyo: true,
-            ease: 'power1.inOut',
+        const tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: containerRef.current,
+                start: "top top",
+                end: "bottom top",
+                scrub: true,
+            },
         });
 
-        // Subtle bounce for Cooky
-        gsap.to(cookyRef.current, {
-            y: -10,
-            duration: 2,
-            repeat: -1,
-            yoyo: true,
-            ease: 'power1.inOut',
-        });
+        tl.to(textRef.current, { y: -200, opacity: 0.5 }, 0);
+        tl.to(imageRef.current, { scale: 1.1, filter: "grayscale(100%)" }, 0);
     }, []);
 
     return (
-        <section
-            id={data?.id || 'hero'}
-            className="relative min-h-screen w-full overflow-hidden flex items-center"
-        >
-            {/* Blurred Background Image */}
-            <div
-                className="absolute inset-0 -z-10"
-                style={{
-                    backgroundImage: `url(${data?.bgMedia || '/assets/yan_foto.jpeg'})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    filter: 'blur(60px)',
-                    opacity: 0.3,
-                }}
-            />
+        <section ref={containerRef} className="relative h-screen w-full overflow-hidden bg-vania-black">
+            {/* Background Image con Filtro Duotone (CSS) */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-gradient-to-tr from-neon-blue/40 to-neon-orange/40 mix-blend-multiply z-10" />
+                <img
+                    ref={imageRef}
+                    src={content.hero.image}
+                    alt="Committed"
+                    className="h-full w-full object-cover grayscale contrast-125"
+                />
+            </div>
 
-            {/* Grid Layout: 40% Text | 60% Image */}
-            <div className="container mx-auto px-8 md:px-16 grid grid-cols-1 lg:grid-cols-10 gap-12 items-center h-full">
+            {/* Glass Title */}
+            <div className="absolute inset-0 z-20 flex items-center justify-center">
+                <div
+                    ref={textRef}
+                    className="backdrop-blur-md bg-white/5 border border-white/10 p-10 rounded-3xl"
+                >
+                    <h1 className="text-[10vw] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 font-display leading-none">
+                        {content.hero.title}
+                    </h1>
 
-                {/* Left Column - Text (40%) */}
-                <div className="lg:col-span-4 flex flex-col justify-center space-y-6">
-                    <div className="relative">
-                        {/* Title */}
-                        <h1 className="font-serif text-7xl md:text-8xl lg:text-9xl font-bold text-white-off leading-none">
-                            {data?.title || 'COMMITTED'}
-                        </h1>
-
-                        {/* Cooky Decoration */}
-                        <img
-                            ref={cookyRef}
-                            src="/assets/cooky_stand.png"
-                            alt="Cooky"
-                            className="absolute -top-8 -right-4 md:-right-12 w-20 h-20 md:w-24 md:h-24 object-contain"
-                            style={{
-                                filter: 'drop-shadow(0 0 20px rgba(255, 61, 0, 0.6))',
-                            }}
-                        />
+                    {/* Detalle Cooky (Decorativo) */}
+                    <div className="absolute -top-10 -right-5 animate-bounce">
+                        <span className="text-4xl">🐰</span> {/* Placeholder para Cooky Icon */}
                     </div>
-
-                    {/* Subtitle */}
-                    <p className="font-sans text-xl md:text-2xl text-white-off/80 tracking-widest">
-                        {data?.subtitle || 'EST. 17.03.2025'}
-                    </p>
-
-                    {/* Music Credit */}
-                    {data?.music && (
-                        <p className="font-sans text-sm md:text-base text-neon-orange italic">
-                            ♪ {data.music}
-                        </p>
-                    )}
-                </div>
-
-                {/* Right Column - Image (60%) */}
-                <div ref={imageRef} className="lg:col-span-6 flex items-center justify-center">
-                    <VerticalCard
-                        src={data?.media || '/assets/yan_foto.jpeg'}
-                        isVideo={false}
-                        alt={data?.title || 'Hero Image'}
-                    />
                 </div>
             </div>
         </section>

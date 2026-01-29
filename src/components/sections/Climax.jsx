@@ -1,102 +1,90 @@
-import { useEffect, useRef } from 'react';
-import gsap from 'gsap';
-import VerticalCard from '../VerticalCard';
+import { useRef, useLayoutEffect } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { content } from "../../data/content";
 
-/**
- * Climax Section - "ETERNAL"
- * 
- * Features:
- * - Pure black background
- * - Parallax teleprompter text (two columns, opposite directions)
- * - Centered photo with premium double border
- * - Elegant typography
- */
-const Climax = ({ data }) => {
-    const leftTextRef = useRef(null);
-    const rightTextRef = useRef(null);
+gsap.registerPlugin(ScrollTrigger);
 
-    useEffect(() => {
-        // Parallax animation for left column (moving up)
-        gsap.to(leftTextRef.current, {
-            y: '-50%',
-            duration: 30,
-            repeat: -1,
-            ease: 'linear',
-        });
+const Climax = () => {
+    const sectionRef = useRef(null);
+    const textRef = useRef(null);
+    const photoRef = useRef(null);
 
-        // Parallax animation for right column (moving down)
-        gsap.to(rightTextRef.current, {
-            y: '50%',
-            duration: 30,
-            repeat: -1,
-            ease: 'linear',
-        });
+    useLayoutEffect(() => {
+        const ctx = gsap.context(() => {
+            // 1. Parallax del Texto de Fondo (Se mueve más lento que el scroll)
+            gsap.to(textRef.current, {
+                yPercent: 30,
+                ease: "none",
+                scrollTrigger: {
+                    trigger: sectionRef.current,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: true,
+                },
+            });
+
+            // 2. Revelación majestuosa de la foto
+            gsap.fromTo(photoRef.current,
+                { scale: 0.8, opacity: 0, y: 100 },
+                {
+                    scale: 1,
+                    opacity: 1,
+                    y: 0,
+                    duration: 1.5,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                        trigger: sectionRef.current,
+                        start: "top 70%", // Empieza cuando el top de la sección está al 70% del viewport
+                    }
+                }
+            );
+        }, sectionRef);
+
+        return () => ctx.revert();
     }, []);
-
-    const bgTexts = data?.bgText || ['TE AMO', 'SIEMPRE', '19 AÑOS', 'NOSOTROS'];
 
     return (
         <section
-            id={data?.id || 'climax'}
-            className="relative min-h-screen w-full bg-black overflow-hidden flex items-center justify-center"
+            ref={sectionRef}
+            className="relative min-h-screen w-full bg-vania-gray overflow-hidden flex items-center justify-center py-20"
         >
-            {/* Teleprompter Background Text - Left Column (Moving Up) */}
-            <div className="absolute left-0 top-0 h-[200vh] flex flex-col justify-start opacity-10 pointer-events-none">
-                <div ref={leftTextRef} className="flex flex-col space-y-12">
-                    {Array(20).fill(null).map((_, i) => (
-                        <div key={i} className="font-serif text-8xl md:text-9xl text-white-off whitespace-nowrap px-8">
-                            {bgTexts[i % bgTexts.length]}
-                        </div>
-                    ))}
-                </div>
+            {/* BACKGROUND TYPOGRAPHY (Teleprompter Effect) */}
+            <div
+                ref={textRef}
+                className="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none select-none z-0"
+            >
+                {content.climax.bgText.map((line, i) => (
+                    <h1
+                        key={i}
+                        className="text-[8vw] md:text-[6vw] font-black leading-[0.9] text-center whitespace-nowrap text-outline font-display uppercase"
+                    >
+                        {line}
+                    </h1>
+                ))}
             </div>
 
-            {/* Teleprompter Background Text - Right Column (Moving Down) */}
-            <div className="absolute right-0 top-0 h-[200vh] flex flex-col justify-start opacity-10 pointer-events-none">
-                <div ref={rightTextRef} className="flex flex-col space-y-12">
-                    {Array(20).fill(null).map((_, i) => (
-                        <div key={i} className="font-serif text-8xl md:text-9xl text-white-off whitespace-nowrap px-8">
-                            {bgTexts[(i + 2) % bgTexts.length]}
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {/* MAIN PHOTO FRAME */}
+            <div className="relative z-10 p-4 md:p-8 border-t border-b border-white/20 bg-black/20 backdrop-blur-sm">
+                <div
+                    ref={photoRef}
+                    className="relative w-[300px] md:w-[400px] aspect-[9/16] overflow-hidden shadow-2xl shadow-neon-blue/20"
+                >
+                    {/* Marco decorativo */}
+                    <div className="absolute inset-0 border border-white/50 z-20 m-2"></div>
 
-            {/* Center Content */}
-            <div className="relative z-10 flex flex-col items-center justify-center px-8">
-                {/* Photo with Premium Double Border */}
-                <div className="relative">
-                    {/* Outer gray border (offset) */}
-                    <div
-                        className="absolute inset-0 border-2 border-gray-500"
-                        style={{
-                            transform: 'translate(10px, 10px)',
-                        }}
+                    <img
+                        src={content.climax.mainPhoto}
+                        alt="The One"
+                        className="w-full h-full object-cover"
                     />
-
-                    {/* Inner white border */}
-                    <div className="relative border border-white-off p-4 bg-black">
-                        <VerticalCard
-                            src={data?.media || '/assets/LAFOTO.jpeg'}
-                            isVideo={false}
-                            alt={data?.title || 'Eternal'}
-                        />
-                    </div>
                 </div>
 
-                {/* Typography Below Photo */}
-                <div className="mt-12 text-center">
-                    <h2 className="font-serif text-4xl md:text-6xl text-white-off mb-4">
-                        {data?.title || 'ETERNAL'}
-                    </h2>
-                    <p className="font-sans text-xs md:text-sm text-white-off/70 tracking-widest uppercase">
-                        {data?.subtitle || 'Time Shifts, We Stay'}
-                    </p>
+                {/* Date stamp detail */}
+                <div className="absolute -bottom-10 right-0 text-xs font-mono text-neon-blue tracking-widest">
+                    V.19 // FOREVER
                 </div>
             </div>
-
-            {/* Vignette Effect */}
-            <div className="absolute inset-0 pointer-events-none bg-gradient-radial from-transparent via-transparent to-black/60" />
         </section>
     );
 };

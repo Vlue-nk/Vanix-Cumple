@@ -6,25 +6,29 @@ export default {
   ],
   theme: {
     extend: {
-      colors: {
-        'black-main': '#000000',
-        'white-off': '#f0f0f0',
-        'neon-blue': '#2924ff',
-        'neon-orange': '#ff3d00',
-        'pastel-lilac': '#e6e6fa',
-        'blood-red': '#8a0303',
-        'dark-gray': '#1a1a1a',
-      },
       fontFamily: {
-        serif: ['"Playfair Display"', 'serif'],
-        sans: ['"Inter"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        sans: ['Inter', 'sans-serif'], // O usa una fuente premium como 'Neue Montreal'
+        display: ['Playfair Display', 'serif'], // Para toques editoriales
       },
-      cursor: {
-        none: 'none',
+      colors: {
+        'vania-black': '#050505',
+        'vania-gray': '#121212',
+        'neon-blue': '#2E5CFF',
+        'neon-orange': '#FF4D00',
+        'cooky-pink': '#FFB6C1', // Color BT21 Cooky
+        'bts-purple': '#9D7CFA',
       },
+      animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        }
+      }
     },
   },
   plugins: [],
 }
-
