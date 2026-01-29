@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useStore } from "../../store/useStore";
@@ -7,117 +7,179 @@ import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Teleprompter text
-const BG_WORDS = ["TE AMO", "SIEMPRE", "FOREVER", "MI VIDA", "ETERNO", "JUNTOS", "TE AMO", "SIEMPRE"];
+const BG_WORDS = ["SIEMPRE", "JUNTOS", "FOREVER", "TE AMO", "ETERNO", "MI VIDA"];
 
 const Climax = () => {
     const { setCurrentTheme } = useStore();
-    const sectionRef = useRef(null);
+    const containerRef = useRef(null);
     const photoRef = useRef(null);
-    const [blurAmount, setBlurAmount] = useState(20);
-
-    const { scrollYProgress } = useScroll({
-        target: sectionRef,
-        offset: ["start end", "end start"]
-    });
-
-    // Slow reveal - blur goes from 20 to 0
-    const blur = useTransform(scrollYProgress, [0.2, 0.5], [20, 0]);
-    const scale = useTransform(scrollYProgress, [0.2, 0.5], [0.85, 1]);
-    const opacity = useTransform(scrollYProgress, [0.1, 0.3], [0, 1]);
-
-    useEffect(() => {
-        const unsubscribe = blur.on("change", (v) => {
-            setBlurAmount(Math.max(0, v));
-        });
-        return () => unsubscribe();
-    }, [blur]);
+    const inkMaskRef = useRef(null);
+    const [inkProgress, setInkProgress] = useState(0);
 
     useEffect(() => {
         setCurrentTheme('climax');
     }, [setCurrentTheme]);
 
+    // GSAP Pinning with high friction (slow scroll)
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: containerRef.current,
+                    start: "top top",
+                    end: "+=500%", // Very long pin for contemplation
+                    pin: true,
+                    scrub: 3, // High friction - 3 second smooth
+                    onUpdate: (self) => {
+                        // Ink reveal progress
+                        setInkProgress(self.progress);
+                    }
+                }
+            });
+
+            // Photo emerges slowly
+            tl.fromTo(photoRef.current,
+                { scale: 0.7, opacity: 0 },
+                { scale: 1, opacity: 1 },
+                0
+            );
+
+        }, containerRef);
+
+        return () => ctx.revert();
+    }, []);
+
+    // Generate ink mask path based on progress
+    const generateInkPath = () => {
+        const p = Math.min(inkProgress * 1.5, 1); // Speed up reveal
+
+        // Organic blob that expands
+        const size = p * 100;
+        const wobble1 = Math.sin(p * 10) * 5;
+        const wobble2 = Math.cos(p * 8) * 8;
+
+        return `
+            M 50,${50 - size / 2}
+            Q ${50 + size / 2 + wobble1},${50 - size / 3} ${50 + size / 2},50
+            Q ${50 + size / 2 + wobble2},${50 + size / 3} 50,${50 + size / 2}
+            Q ${50 - size / 2 + wobble1},${50 + size / 3} ${50 - size / 2},50
+            Q ${50 - size / 2 + wobble2},${50 - size / 3} 50,${50 - size / 2}
+            Z
+        `;
+    };
+
     return (
         <section
-            ref={sectionRef}
-            className="relative min-h-[300vh] w-full bg-black overflow-hidden"
+            ref={containerRef}
+            className="relative h-screen w-full bg-black overflow-hidden"
         >
-            {/* Sticky container for pinning effect */}
-            <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden">
-
-                {/* BACKGROUND TYPOGRAPHY (Teleprompter - Infinite upward) */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
-                    <motion.div
-                        className="flex flex-col items-center"
-                        animate={{ y: ["0%", "-50%"] }}
-                        transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-                    >
-                        {[...BG_WORDS, ...BG_WORDS].map((word, i) => (
-                            <h1
-                                key={i}
-                                className="text-[15vw] md:text-[12vw] font-black leading-[0.85] text-center whitespace-nowrap text-gray-900 font-display uppercase"
-                                style={{
-                                    WebkitTextStroke: "1px rgba(40,40,40,0.5)",
-                                    color: "transparent"
-                                }}
-                            >
-                                {word}
-                            </h1>
-                        ))}
-                    </motion.div>
-                </div>
-
-                {/* MAIN PHOTO - Slow Blur Reveal */}
+            {/* Teleprompter background - infinite scroll */}
+            <div className="absolute inset-0 flex flex-col items-center pointer-events-none select-none overflow-hidden opacity-[0.08]">
                 <motion.div
-                    className="relative z-10 p-6 md:p-10"
-                    style={{ opacity, scale }}
+                    className="flex flex-col items-center"
+                    animate={{ y: ["0%", "-50%"] }}
+                    transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
                 >
-                    <div className="relative">
-                        {/* Decorative frame layers */}
-                        <div className="absolute -inset-4 border border-white/10" />
-                        <div className="absolute -inset-8 border border-white/5" />
+                    {[...BG_WORDS, ...BG_WORDS, ...BG_WORDS, ...BG_WORDS].map((word, i) => (
+                        <h1
+                            key={i}
+                            className="text-[20vw] md:text-[16vw] font-black leading-[0.75] text-center whitespace-nowrap font-display uppercase text-gray-800"
+                        >
+                            {word}
+                        </h1>
+                    ))}
+                </motion.div>
+            </div>
 
-                        <motion.div
-                            ref={photoRef}
-                            className="relative w-[280px] md:w-[380px] aspect-[9/16] overflow-hidden shadow-2xl"
+            {/* Photo with ink reveal mask */}
+            <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="relative">
+                    {/* Decorative frames */}
+                    <motion.div
+                        className="absolute -inset-6 border border-white/10"
+                        style={{ opacity: inkProgress }}
+                    />
+                    <motion.div
+                        className="absolute -inset-12 border border-white/5"
+                        style={{ opacity: inkProgress * 0.5 }}
+                    />
+
+                    {/* Photo container with SVG mask */}
+                    <div
+                        ref={photoRef}
+                        className="relative w-[280px] md:w-[360px] aspect-[9/16] overflow-hidden"
+                        style={{ opacity: 0 }}
+                    >
+                        {/* The SVG mask */}
+                        <svg
+                            className="absolute inset-0 w-full h-full"
+                            viewBox="0 0 100 177.78"
+                            preserveAspectRatio="none"
+                        >
+                            <defs>
+                                <clipPath id="inkReveal">
+                                    <path ref={inkMaskRef} d={generateInkPath()} />
+                                </clipPath>
+                            </defs>
+                        </svg>
+
+                        {/* Photo clipped by ink mask */}
+                        <div
+                            className="w-full h-full"
                             style={{
-                                filter: `blur(${blurAmount}px)`,
-                                transition: "filter 0.1s ease-out"
+                                clipPath: inkProgress > 0.7 ? 'none' : 'url(#inkReveal)'
                             }}
                         >
-                            {/* Inner frame */}
-                            <div className="absolute inset-0 border border-white/30 z-20 m-3" />
-
                             <img
                                 src={content.climax.mainPhoto}
                                 alt="The One"
                                 className="w-full h-full object-cover"
                             />
+                        </div>
 
-                            {/* Subtle glow overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/20 via-transparent to-purple-900/10 mix-blend-overlay" />
-                        </motion.div>
+                        {/* Subtle glow */}
+                        <div
+                            className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-purple-900/20 mix-blend-overlay pointer-events-none"
+                            style={{ opacity: inkProgress }}
+                        />
 
-                        {/* Date stamp */}
-                        <motion.div
-                            className="absolute -bottom-8 right-0 text-xs font-mono text-blue-400/60 tracking-widest"
-                            style={{ opacity: useTransform(scrollYProgress, [0.4, 0.6], [0, 1]) }}
-                        >
-                            V.19 // FOREVER
-                        </motion.div>
+                        {/* Inner frame */}
+                        <div
+                            className="absolute inset-3 border border-white/20 pointer-events-none"
+                            style={{ opacity: inkProgress }}
+                        />
                     </div>
-                </motion.div>
 
-                {/* Audio hint */}
-                <motion.div
-                    className="absolute bottom-10 left-1/2 -translate-x-1/2 text-center z-20"
-                    style={{ opacity: useTransform(scrollYProgress, [0.5, 0.7], [0, 1]) }}
-                >
-                    <p className="text-xs text-gray-600 font-mono uppercase tracking-[0.3em]">
-                        🎵 Rosemary - Deftones
-                    </p>
-                </motion.div>
+                    {/* Date stamp */}
+                    <motion.div
+                        className="absolute -bottom-10 right-0 text-xs font-mono text-blue-400/50 tracking-widest"
+                        style={{ opacity: inkProgress }}
+                    >
+                        V.19 // FOREVER
+                    </motion.div>
+                </div>
             </div>
+
+            {/* Audio indicator */}
+            <motion.div
+                className="absolute bottom-10 left-1/2 -translate-x-1/2 text-center z-20"
+                style={{ opacity: Math.min(inkProgress * 2, 1) }}
+            >
+                <p className="text-xs text-gray-600 font-mono uppercase tracking-[0.3em]">
+                    🎵 Rosemary - Deftones
+                </p>
+                <p className="text-[10px] text-gray-700 mt-2 italic">
+                    Respira. Contempla.
+                </p>
+            </motion.div>
+
+            {/* Vignette */}
+            <div
+                className="absolute inset-0 pointer-events-none z-30"
+                style={{
+                    background: "radial-gradient(ellipse at center, transparent 40%, black 100%)"
+                }}
+            />
         </section>
     );
 };

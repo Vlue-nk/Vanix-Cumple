@@ -1,40 +1,61 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useStore } from "../../store/useStore";
 import { content } from "../../data/content";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const CanvasSection = () => {
     const { setCurrentTheme } = useStore();
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
-    const [dateProgress, setDateProgress] = useState(0);
-
-    const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start end", "end start"]
-    });
-
-    // Date drawing animation based on scroll
-    const strokeDashoffset = useTransform(scrollYProgress, [0.2, 0.6], [400, 0]);
-
-    useEffect(() => {
-        const unsubscribe = scrollYProgress.on("change", (v) => {
-            setDateProgress(v);
-        });
-        return () => unsubscribe();
-    }, [scrollYProgress]);
+    const dateRef = useRef(null);
+    const videoRef = useRef(null);
 
     useEffect(() => {
         setCurrentTheme('canvas');
     }, [setCurrentTheme]);
 
-    // Canvas paint effect
+    // GSAP Pinning with scroll-controlled animations
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            const tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: containerRef.current,
+                    start: "top top",
+                    end: "+=250%",
+                    pin: true,
+                    scrub: 1,
+                }
+            });
+
+            // Date draws itself (stroke-dashoffset)
+            tl.fromTo(dateRef.current,
+                { strokeDashoffset: 400 },
+                { strokeDashoffset: 0 },
+                0
+            );
+
+            // Video scales and rotates into view
+            tl.fromTo(videoRef.current,
+                { scale: 0.7, rotate: -10, opacity: 0 },
+                { scale: 1, rotate: 3, opacity: 1 },
+                0
+            );
+
+        }, containerRef);
+
+        return () => ctx.revert();
+    }, []);
+
+    // Interactive canvas paint
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const ctx = canvas.getContext("2d");
-        let animationFrameId;
+        let animationId;
 
         const resize = () => {
             canvas.width = window.innerWidth;
@@ -45,22 +66,20 @@ const CanvasSection = () => {
 
         const particles = [];
 
-        // Watercolor-like brush
         const addWatercolor = (x, y) => {
             const colors = [
-                "rgba(139, 90, 43, 0.15)",    // Sepia
-                "rgba(70, 130, 180, 0.12)",   // Steel Blue
-                "rgba(188, 143, 143, 0.14)", // Rosy Brown
-                "rgba(107, 142, 35, 0.10)",  // Olive Drab
+                "rgba(139, 90, 43, 0.12)",
+                "rgba(70, 130, 180, 0.10)",
+                "rgba(188, 143, 143, 0.12)",
             ];
             const color = colors[Math.floor(Math.random() * colors.length)];
             particles.push({
                 x, y,
-                radius: Math.random() * 40 + 20,
+                radius: Math.random() * 35 + 15,
                 color,
                 life: 1,
-                vx: (Math.random() - 0.5) * 2,
-                vy: (Math.random() - 0.5) * 2
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5
             });
         };
 
@@ -72,22 +91,20 @@ const CanvasSection = () => {
         canvas.addEventListener("mousemove", handleMouseMove);
 
         const render = () => {
-            // Fade trail
             ctx.globalCompositeOperation = "destination-out";
             ctx.fillStyle = "rgba(0, 0, 0, 0.02)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.globalCompositeOperation = "source-over";
 
             particles.forEach((p, index) => {
-                p.life -= 0.008;
-                p.radius += 0.5;
+                p.life -= 0.006;
+                p.radius += 0.3;
                 p.x += p.vx;
                 p.y += p.vy;
 
                 if (p.life <= 0) {
                     particles.splice(index, 1);
                 } else {
-                    // Soft watercolor blob
                     const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
                     gradient.addColorStop(0, p.color);
                     gradient.addColorStop(1, "transparent");
@@ -95,114 +112,100 @@ const CanvasSection = () => {
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
                     ctx.fillStyle = gradient;
-                    ctx.globalAlpha = p.life * 0.6;
+                    ctx.globalAlpha = p.life * 0.5;
                     ctx.fill();
                 }
             });
 
             ctx.globalAlpha = 1;
-            animationFrameId = requestAnimationFrame(render);
+            animationId = requestAnimationFrame(render);
         };
         render();
 
         return () => {
             window.removeEventListener("resize", resize);
             canvas.removeEventListener("mousemove", handleMouseMove);
-            cancelAnimationFrame(animationFrameId);
+            cancelAnimationFrame(animationId);
         };
     }, []);
 
     return (
         <section
             ref={containerRef}
-            className="relative min-h-[200vh] w-full overflow-hidden"
+            className="relative h-screen w-full overflow-hidden"
             style={{
                 background: "linear-gradient(180deg, #fdfbf7 0%, #f5efe6 50%, #ebe4d8 100%)"
             }}
         >
-            {/* Paper texture overlay */}
+            {/* Paper texture */}
             <div
-                className="absolute inset-0 opacity-30 pointer-events-none"
+                className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3CfeDiffuseLighting lighting-color='%23fff' surfaceScale='2'%3E%3CfeDistantLight azimuth='45' elevation='60'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`
                 }}
             />
 
-            {/* Sticky content */}
-            <div className="sticky top-0 h-screen w-full flex items-center justify-center">
-
-                {/* Handwritten Date - SVG with stroke animation */}
-                <motion.svg
-                    className="absolute z-10 w-full max-w-4xl px-8"
-                    viewBox="0 0 500 100"
-                    style={{ opacity: useTransform(scrollYProgress, [0.1, 0.3], [0, 1]) }}
+            {/* SVG Date - handwritten stroke animation */}
+            <svg className="absolute inset-0 z-10 w-full h-full" viewBox="0 0 500 100" preserveAspectRatio="xMidYMid meet">
+                <text
+                    ref={dateRef}
+                    x="50%"
+                    y="20%"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="none"
+                    stroke="#8B7355"
+                    strokeWidth="1"
+                    fontFamily="Georgia, serif"
+                    fontStyle="italic"
+                    fontSize="48"
+                    strokeDasharray="400"
+                    strokeDashoffset="400"
                 >
-                    <motion.text
-                        x="50%"
-                        y="50%"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="text-8xl"
-                        fill="none"
-                        stroke="#8B7355"
-                        strokeWidth="1"
-                        fontFamily="Georgia, serif"
-                        fontStyle="italic"
-                        style={{
-                            strokeDasharray: 400,
-                            strokeDashoffset: strokeDashoffset
-                        }}
-                    >
-                        17 · 03 · 2025
-                    </motion.text>
-                </motion.svg>
+                    17 · 03 · 2025
+                </text>
+            </svg>
 
-                {/* Video with paint splash mask */}
-                <div className="relative z-20">
-                    <div
-                        className="w-[350px] h-[450px] md:w-[400px] md:h-[520px] overflow-hidden"
-                        style={{
-                            clipPath: "url(#paintMask)",
-                            filter: "drop-shadow(0 25px 50px rgba(0,0,0,0.2))"
-                        }}
-                    >
-                        <video
-                            src={content.canvas.video}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            className="w-full h-full object-cover"
-                        />
-                    </div>
-
-                    {/* SVG Paint Splash Mask */}
-                    <svg className="absolute" width="0" height="0">
-                        <defs>
-                            <clipPath id="paintMask" clipPathUnits="objectBoundingBox">
-                                <path d="M0.1,0.05 Q0.0,0.1 0.05,0.3 Q0.0,0.5 0.08,0.7 Q0.02,0.85 0.15,0.95 Q0.3,1.0 0.5,0.98 Q0.7,1.02 0.85,0.92 Q0.98,0.8 0.95,0.6 Q1.0,0.4 0.92,0.2 Q0.95,0.05 0.8,0.02 Q0.6,0.0 0.4,0.03 Q0.2,0.0 0.1,0.05 Z" />
-                            </clipPath>
-                        </defs>
-                    </svg>
+            {/* Video with paint splash mask */}
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div
+                    ref={videoRef}
+                    className="w-[300px] h-[400px] md:w-[380px] md:h-[500px] overflow-hidden opacity-0"
+                    style={{
+                        clipPath: "url(#paintMask)",
+                        filter: "drop-shadow(0 25px 50px rgba(0,0,0,0.2))"
+                    }}
+                >
+                    <video
+                        src={content.canvas.video}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover"
+                    />
                 </div>
 
-                {/* Interactive canvas layer */}
-                <canvas
-                    ref={canvasRef}
-                    className="absolute inset-0 z-30 cursor-crosshair"
-                    style={{ mixBlendMode: "multiply" }}
-                />
-
-                {/* Instruction */}
-                <motion.p
-                    className="absolute bottom-12 text-gray-500 text-sm uppercase tracking-[0.3em] font-mono z-40"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                >
-                    Mueve el cursor para pintar
-                </motion.p>
+                <svg className="absolute" width="0" height="0">
+                    <defs>
+                        <clipPath id="paintMask" clipPathUnits="objectBoundingBox">
+                            <path d="M0.1,0.05 Q0.0,0.1 0.05,0.3 Q0.0,0.5 0.08,0.7 Q0.02,0.85 0.15,0.95 Q0.3,1.0 0.5,0.98 Q0.7,1.02 0.85,0.92 Q0.98,0.8 0.95,0.6 Q1.0,0.4 0.92,0.2 Q0.95,0.05 0.8,0.02 Q0.6,0.0 0.4,0.03 Q0.2,0.0 0.1,0.05 Z" />
+                        </clipPath>
+                    </defs>
+                </svg>
             </div>
+
+            {/* Interactive canvas */}
+            <canvas
+                ref={canvasRef}
+                className="absolute inset-0 z-30 cursor-crosshair"
+                style={{ mixBlendMode: "multiply" }}
+            />
+
+            {/* Instruction */}
+            <p className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-500 text-sm uppercase tracking-[0.3em] font-mono z-40">
+                Pinta con el cursor ✎
+            </p>
         </section>
     );
 };

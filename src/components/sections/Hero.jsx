@@ -1,138 +1,223 @@
-import { useEffect, useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useStore } from "../../store/useStore";
 import { content } from "../../data/content";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Hero = () => {
   const { setCurrentTrack, setCurrentTheme } = useStore();
   const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: containerRef });
-
-  // Parallax diferenciado - texto sube más rápido que imagen
-  const yText = useTransform(scrollYProgress, [0, 1], [0, -200]);
-  const yImage = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const rotateImage = useTransform(scrollYProgress, [0, 1], [5, -2]);
-  const opacityText = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const photoRef = useRef(null);
+  const textRef = useRef(null);
+  const dustCanvasRef = useRef(null);
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
 
   useEffect(() => {
     setCurrentTrack(content.hero.audio);
     setCurrentTheme(content.hero.theme);
   }, [setCurrentTrack, setCurrentTheme]);
 
+  // Mouse parallax effect
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      setMousePos({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Dust particles
+  useEffect(() => {
+    const canvas = dustCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    let animationId;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", resize);
+    resize();
+
+    const particles = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.2,
+        opacity: Math.random() * 0.4 + 0.1
+      });
+    }
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(render);
+    };
+    render();
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
+
+  // GSAP Pinning
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top top",
+          end: "+=200%",
+          pin: true,
+          scrub: 1,
+        }
+      });
+
+      // Text parallax
+      tl.to(textRef.current, { y: -100, opacity: 0.3 }, 0);
+      // Photo scales and moves
+      tl.to(photoRef.current, { y: -50, scale: 1.1 }, 0);
+
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // Calculate parallax offsets (mirror effect - moves opposite)
+  const photoOffsetX = (mousePos.x - 0.5) * -40;
+  const photoOffsetY = (mousePos.y - 0.5) * -30;
+  const textOffsetX = (mousePos.x - 0.5) * 15;
+  const textOffsetY = (mousePos.y - 0.5) * 10;
+
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[200vh] w-full flex items-start justify-center px-6 md:px-20 pt-32 pb-40"
+      className="relative h-screen w-full flex items-center justify-center overflow-hidden"
     >
-      {/* Pin container for visual content */}
-      <div className="sticky top-20 max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-16 items-center z-10">
+      {/* Breathing gradient background */}
+      <motion.div
+        className="absolute inset-0 z-0"
+        animate={{
+          background: [
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 70%, #e94560 100%)",
+            "linear-gradient(135deg, #0f3460 0%, #e94560 30%, #1a1a2e 70%, #16213e 100%)",
+            "linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 70%, #e94560 100%)"
+          ]
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+      />
 
-        {/* COLUMNA TEXTO (Izquierda) - Display Condensed */}
-        <motion.div
-          className="md:col-span-5 flex flex-col justify-center order-2 md:order-1"
-          style={{ y: yText, opacity: opacityText }}
+      {/* Dust particles */}
+      <canvas
+        ref={dustCanvasRef}
+        className="absolute inset-0 z-10 pointer-events-none"
+      />
+
+      {/* Giant glass typography */}
+      <motion.div
+        ref={textRef}
+        className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none overflow-hidden"
+        style={{
+          transform: `translate(${textOffsetX}px, ${textOffsetY}px)`
+        }}
+      >
+        <h1
+          className="text-[18vw] md:text-[22vw] font-display font-black leading-[0.85] text-center tracking-tighter select-none"
+          style={{
+            color: "rgba(255,255,255,0.08)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+            textShadow: "0 0 80px rgba(233, 69, 96, 0.3)"
+          }}
         >
-          <div className="overflow-hidden mb-6">
-            <motion.span
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              transition={{ duration: 1, ease: [0.76, 0, 0.24, 1], delay: 0.5 }}
-              className="block text-sm md:text-base font-serif italic tracking-wider text-gray-500"
-            >
-              — Cap. 01: El Inicio
-            </motion.span>
-          </div>
+          COMPROMETIDOS
+        </h1>
+      </motion.div>
 
-          {/* Tipografía Display Enorme Condensada */}
-          <motion.h1
-            className="text-7xl md:text-[10rem] font-display font-black leading-[0.85] text-gray-900 mb-8 tracking-tighter"
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-          >
-            NUESTRO
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-800 via-gray-600 to-gray-400 italic font-light">
-              PACTO
-            </span>
-          </motion.h1>
+      {/* Floating photo with mouse parallax */}
+      <motion.div
+        ref={photoRef}
+        className="relative z-30"
+        style={{
+          transform: `translate(${photoOffsetX}px, ${photoOffsetY}px)`
+        }}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {/* Geometric frame */}
+        <div className="absolute -inset-4 border border-white/20 rotate-3" />
+        <div className="absolute -inset-8 border border-white/10 -rotate-2" />
 
-          <motion.p
-            className="text-lg md:text-xl text-gray-500 max-w-md font-light leading-relaxed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 1 }}
-          >
-            Un viaje a través de nuestras memorias, sonidos y momentos.
-            <span className="block mt-2 text-gray-400 italic">Desliza suavemente para recordar.</span>
-          </motion.p>
+        <div className="relative w-[280px] md:w-[380px] aspect-[3/4] shadow-2xl overflow-hidden">
+          <img
+            src={content.hero.image}
+            alt="Nosotros"
+            className="w-full h-full object-cover"
+          />
 
-          {/* Audio indicator */}
-          <motion.div
-            className="mt-8 flex items-center gap-3 text-gray-400"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-          >
-            <div className="flex gap-[2px] items-end h-4">
-              {[0, 1, 2, 3].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-[2px] bg-gray-400 rounded-full"
-                  animate={{ height: [4, 14, 8, 16, 4] }}
-                  transition={{ repeat: Infinity, duration: 0.8 + i * 0.1, ease: "easeInOut" }}
-                />
-              ))}
-            </div>
-            <span className="text-xs uppercase tracking-widest font-mono">Now Playing: Committed</span>
-          </motion.div>
-        </motion.div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        </div>
 
-        {/* COLUMNA IMAGEN (Derecha) - Flotante con inclinación */}
+        {/* Caption */}
         <motion.div
-          className="md:col-span-7 relative order-1 md:order-2"
-          style={{ y: yImage, rotate: rotateImage }}
+          className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.8 }}
         >
-          {/* Marco Decorativo offset */}
-          <div className="absolute top-[-15px] right-[-15px] w-full h-full border border-gray-300/40 rounded-sm z-0" />
-          <div className="absolute top-[-30px] right-[-30px] w-full h-full border border-gray-200/20 rounded-sm z-0" />
-
-          <motion.div
-            className="relative overflow-hidden aspect-[4/5] shadow-2xl rounded-sm"
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "circOut" }}
-          >
-            <img
-              src={content.hero.image}
-              alt="Nosotros"
-              className="w-full h-full object-cover"
-            />
-
-            {/* Overlay elegante */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
-
-            {/* Grain overlay para textura */}
-            <div
-              className="absolute inset-0 opacity-[0.08] pointer-events-none mix-blend-overlay"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-              }}
-            />
-          </motion.div>
-
-          {/* Tarjeta flotante con ubicación */}
-          <motion.div
-            className="absolute -bottom-8 -left-8 bg-white p-5 shadow-xl max-w-xs hidden md:block"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.8 }}
-          >
-            <p className="font-mono text-[10px] text-gray-400 uppercase tracking-[0.2em] mb-1">Ubicación</p>
-            <p className="text-gray-900 font-semibold text-lg">Áreas Verdes</p>
-          </motion.div>
+          <p className="text-sm md:text-base font-serif italic text-white/60 tracking-wide">
+            Cap. 01 — El Inicio
+          </p>
         </motion.div>
-      </div>
+      </motion.div>
+
+      {/* Scroll hint */}
+      <motion.div
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-40"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+      >
+        <p className="text-xs text-white/40 uppercase tracking-[0.3em] font-mono">
+          Scroll para recordar
+        </p>
+      </motion.div>
+
+      {/* Noise overlay */}
+      <div
+        className="absolute inset-0 z-50 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+        }}
+      />
     </section>
   );
 };
