@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Minimal premium palette (no neon) */
+  --black: #050505;
+  --white: #f1f1ef;
+  --graphite: #141414;
+  --fog: rgba(241, 241, 239, 0.08);
+  --ink: rgba(241, 241, 239, 0.72);
+  --wine: #1b0f12; /* “rojo vino” casi negro */
+  --paper: #f7f4ec; /* blanco hueso */
+
+  /* Type scale (clamp) */
+  --text-xs: clamp(0.72rem, 0.66rem + 0.22vw, 0.8rem);
+  --text-sm: clamp(0.85rem, 0.78rem + 0.35vw, 0.95rem);
+  --text-base: clamp(1rem, 0.9rem + 0.55vw, 1.1rem);
+  --text-lg: clamp(1.15rem, 1rem + 0.8vw, 1.3rem);
+  --text-xl: clamp(1.4rem, 1.1rem + 1.2vw, 1.7rem);
+  --text-2xl: clamp(1.85rem, 1.35rem + 2vw, 2.35rem);
+  --text-3xl: clamp(2.35rem, 1.75rem + 2.8vw, 3.4rem);
+  --text-4xl: clamp(3.1rem, 2.2rem + 3.8vw, 4.7rem);
+  --text-5xl: clamp(3.9rem, 2.8rem + 5vw, 6.2rem);
+  --text-6xl: clamp(5rem, 3.2rem + 6.4vw, 8.8rem);
+  --text-display: clamp(6.5rem, 4rem + 10vw, 16rem);
+
+  /* Cursor */
+  --cursor-size: 14px;
+  --cursor-size-hover: 64px;
+}
+
+body {
+  cursor: none;
+  background: var(--black);
+  color: var(--white);
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Hide scrollbar visuals (don’t block scrolling) */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Lenis base helpers */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Typography */
+.font-editorial { font-family: 'Playfair Display', serif; }
+.font-chaos { font-family: 'Inter', system-ui, sans-serif; letter-spacing: -0.02em; }
+.font-tech { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Grain overlay (never flat) */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Cursor */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  border-radius: 999px;
+  border: 1px solid rgba(241, 241, 239, 0.85);
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform, width, height;
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    backdrop-filter 0.25s ease;
+}
+.custom-cursor.hovered {
+  width: var(--cursor-size-hover);
+  height: var(--cursor-size-hover);
+  background-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  border-color: transparent;
+}
+.custom-cursor-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(241, 241, 239, 0.9);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.custom-cursor.hovered .custom-cursor-dot { opacity: 0; transform: scale(0.6); }
+.custom-cursor-icon { width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.25s ease; }
+.custom-cursor.hovered .custom-cursor-icon { opacity: 1; }
+
+/* Layout primitives */
+.section-pad { padding-left: clamp(1rem, 4vw, 4rem); padding-right: clamp(1rem, 4vw, 4rem); }
+.bg-premium-dark {
+  background:
+    radial-gradient(1200px 700px at 25% 15%, rgba(255,255,255,0.06), transparent 58%),
+    radial-gradient(900px 650px at 75% 70%, rgba(255,255,255,0.04), transparent 55%),
+    linear-gradient(180deg, rgba(5,5,5,1), rgba(10,10,10,1));
+}
+.bg-paper {
+  background:
+    radial-gradient(900px 500px at 30% 20%, rgba(0,0,0,0.05), transparent 60%),
+    radial-gradient(700px 500px at 70% 80%, rgba(0,0,0,0.04), transparent 55%),
+    linear-gradient(0deg, rgba(247, 244, 236, 1), rgba(241, 238, 230, 1));
+}
+.card-vert { aspect-ratio: 9 / 16; border-radius: 16px; overflow: hidden; background: rgba(0,0,0,0.2); }
+.card-frame {
+  border: 1px solid rgba(241, 241, 239, 0.22);
+  box-shadow: 0 22px 90px rgba(0,0,0,0.58), 0 0 0 10px rgba(255,255,255,0.06);
+}
+
