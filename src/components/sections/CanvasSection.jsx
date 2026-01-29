@@ -204,7 +204,7 @@ const CanvasSection = () => {
 
             {/* Instruction */}
             <p className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-500 text-sm uppercase tracking-[0.3em] font-mono z-40">
-                Pinta con el cursor ✎
+                Dibuja con el cursor ✎
             </p>
         </section>
     );

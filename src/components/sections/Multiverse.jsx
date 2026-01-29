@@ -165,12 +165,12 @@ const Multiverse = () => {
           }}
         />
 
-        {/* Cute decorations */}
-        <div className="absolute top-8 left-8 opacity-60 z-10">
-          <img src="/assets/cooky_stand.webp" alt="Cooky" className="h-16" />
+        {/* Cute decorations - smaller */}
+        <div className="absolute top-8 left-8 opacity-50 z-10">
+          <img src="/assets/cooky_stand.webp" alt="Cooky" className="h-10" />
         </div>
-        <div className="absolute bottom-8 right-8 opacity-60 z-10">
-          <img src="/assets/snoopy_perfil.webp" alt="Snoopy" className="h-14" />
+        <div className="absolute bottom-8 right-8 opacity-50 z-10">
+          <img src="/assets/snoopy_perfil.webp" alt="Snoopy" className="h-8" />
         </div>
 
         {/* THE BALLOON - Complex behavior */}
@@ -216,7 +216,7 @@ const Multiverse = () => {
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ repeat: Infinity, duration: 2 }}
             >
-              No toques el globo
+              🎈 Toca el globo
             </motion.p>
           </motion.div>
         )}

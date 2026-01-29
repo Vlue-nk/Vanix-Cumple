@@ -67,11 +67,11 @@ const SpookySection = () => {
             {/* Title */}
             <h2
                 ref={titleRef}
-                className="text-5xl md:text-8xl font-display font-bold text-center mb-12 z-10 glitch-text opacity-0"
-                data-text="SPOOKY SZN"
+                className="text-6xl md:text-9xl font-display font-black uppercase text-center mb-12 z-10 opacity-0"
                 style={{
-                    color: "transparent",
-                    WebkitTextStroke: "1px rgba(255,50,50,0.6)"
+                    color: COLORS.driedBlood,
+                    textShadow: `0 0 60px ${COLORS.driedBlood}80, 0 0 120px ${COLORS.driedBlood}40`,
+                    letterSpacing: '-0.05em',
                 }}
             >
                 SPOOKY SZN

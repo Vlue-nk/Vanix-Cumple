@@ -145,10 +145,10 @@ const EnergySection = () => {
                 {/* Header */}
                 <div ref={titleRef} className="mb-8 border-b border-white/20 pb-4 flex justify-between items-end opacity-0">
                     <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white">
-                        Energy<span className="text-red-500">.</span>
+                        Energía<span className="text-red-500">.</span>
                     </h2>
                     <span className="font-mono text-xs md:text-sm text-gray-500 text-right">
-                        LIVE MEMORIES
+                        RECUERDOS EN VIVO
                     </span>
                 </div>
 
