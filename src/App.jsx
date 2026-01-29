@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import Lenis from "@studio-freight/lenis";
 import { AnimatePresence } from "framer-motion";
 
@@ -8,32 +8,36 @@ import CustomCursor from "./components/CustomCursor";
 import SoundManager from "./components/SoundManager";
 import GlobalBackground from "./components/GlobalBackground";
 import AudioControl from "./components/AudioControl";
+import BloodOverlay from "./components/BloodOverlay";
+import ProgressBar from "./components/ProgressBar";
 
 // --- SECTIONS ---
-import Hero from "./components/sections/Hero";           // Escena 1: Committed
-import GazeSection from "./components/sections/GazeSection";      // Escena 2: The Gaze
-import CanvasSection from "./components/sections/CanvasSection";  // Escena 3: Art
-import DualitySection from "./components/sections/DualitySection"; // Escena 4: HIM/Deftones
-import EnergySection from "./components/sections/EnergySection";   // Escena 5: Conciertos
-import SpookySection from "./components/sections/SpookySection";   // Escena 6: Halloween
-import MultiverseSection from "./components/sections/MultiverseSection"; // Escena 7: Glitch
-import Climax from "./components/sections/Climax";                 // Escena 8: Editorial
-import OutroSection from "./components/sections/OutroSection";     // Escena 9 y 10: Final
+import Hero from "./components/sections/Hero";
+import GazeSection from "./components/sections/GazeSection";
+import CanvasSection from "./components/sections/CanvasSection";
+import DualitySection from "./components/sections/DualitySection";
+import EnergySection from "./components/sections/EnergySection";
+import SpookySection from "./components/sections/SpookySection";
+import Multiverse from "./components/sections/Multiverse";
+import Climax from "./components/sections/Climax";
+import OutroSection from "./components/sections/OutroSection";
 
 import { useStore } from "./store/useStore";
 
 function App() {
-    const { isLoading } = useStore();
+    const { isLoading, setLenisRef } = useStore();
+    const [scrollProgress, setScrollProgress] = useState(0);
 
     useEffect(() => {
-        // Manual Lenis implementation for React 19 / @studio-freight/lenis compatibility
         const lenis = new Lenis({
-            duration: 1.8, // Slower for cinematic feel
+            duration: 1.8,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
             orientation: 'vertical',
             gestureOrientation: 'vertical',
             smoothWheel: true,
         });
+
+        setLenisRef(lenis);
 
         function raf(time) {
             lenis.raf(time);
@@ -42,49 +46,64 @@ function App() {
 
         requestAnimationFrame(raf);
 
+        // Track scroll progress
+        const handleScroll = () => {
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (window.scrollY / scrollHeight) * 100;
+            setScrollProgress(Math.min(100, Math.max(0, progress)));
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+
         return () => {
             lenis.destroy();
+            window.removeEventListener('scroll', handleScroll);
         };
-    }, []);
+    }, [setLenisRef]);
 
     return (
-        <div className="relative font-sans bg-vania-black text-white selection:bg-neon-orange selection:text-white cursor-none">
-            <CustomCursor />
-            <GlobalBackground />
-            <SoundManager />
-            <AudioControl />
+        <div className="relative font-sans bg-vania-black text-white selection:bg-neon-orange selection:text-white cursor-none overflow-x-hidden">
 
+            {/* Z-INDEX LAYERS:
+                -10: GlobalBackground (fixed)
+                0: Main content / sections
+                50: AudioControl, ProgressBar (fixed)
+                100: CustomCursor
+                9999: BloodOverlay
+            */}
+
+            {/* Fixed background - z-[-10] */}
+            <GlobalBackground />
+
+            {/* Audio system (invisible) */}
+            <SoundManager />
+
+            {/* Custom cursor - z-[100] */}
+            <CustomCursor />
+
+            {/* UI Controls - z-[50] */}
+            <AudioControl />
+            <ProgressBar scrollProgress={scrollProgress} />
+
+            {/* Blood curtain overlay - z-[9999] */}
+            <BloodOverlay />
+
+            {/* Preloader */}
             <AnimatePresence mode="wait">
                 {isLoading && <Preloader key="preloader" />}
             </AnimatePresence>
 
+            {/* Main scrollable content - z-[0] */}
             {!isLoading && (
-                <main className="w-full relative z-0">
-                    {/* 1. HERO (Committed) */}
+                <main className="relative z-0">
                     <Hero />
-
-                    {/* 2. THE GAZE */}
                     <GazeSection />
-
-                    {/* 3. CANVAS (Art) */}
                     <CanvasSection />
-
-                    {/* 4. DUALITY (HIM vs Deftones) */}
                     <DualitySection />
-
-                    {/* 5. ENERGY (Zen & Libido) */}
                     <EnergySection />
-
-                    {/* 6. SPOOKY SEASON (Halloween) */}
                     <SpookySection />
-
-                    {/* 7. MULTIVERSE (Cute -> Horror) */}
-                    <MultiverseSection />
-
-                    {/* 8. CLIMAX (The Photo) */}
+                    <Multiverse />
                     <Climax />
-
-                    {/* 9 & 10. OUTRO (Memories + End) */}
                     <OutroSection />
                 </main>
             )}

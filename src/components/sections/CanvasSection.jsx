@@ -1,21 +1,18 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import { COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const CanvasSection = () => {
-    const { setCurrentTheme } = useStore();
+    const zoneRef = useZoneDetector('canvas');
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const dateRef = useRef(null);
     const videoRef = useRef(null);
-
-    useEffect(() => {
-        setCurrentTheme('canvas');
-    }, [setCurrentTheme]);
 
     // GSAP Pinning with scroll-controlled animations
     useEffect(() => {
@@ -131,15 +128,18 @@ const CanvasSection = () => {
 
     return (
         <section
-            ref={containerRef}
-            className="relative h-screen w-full overflow-hidden"
-            style={{
-                background: "linear-gradient(180deg, #fdfbf7 0%, #f5efe6 50%, #ebe4d8 100%)"
-            }}
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            className="relative h-screen w-full overflow-hidden bg-transparent"
         >
+            {/* Cream overlay for light section */}
+            <div
+                className="absolute inset-0 z-0"
+                style={{ background: `linear-gradient(180deg, ${COLORS.cream}90 0%, ${COLORS.offWhite}90 100%)` }}
+            />
+
             {/* Paper texture */}
             <div
-                className="absolute inset-0 opacity-20 pointer-events-none"
+                className="absolute inset-0 opacity-20 pointer-events-none z-[1]"
                 style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E")`
                 }}

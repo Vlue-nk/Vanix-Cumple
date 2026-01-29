@@ -1,122 +1,198 @@
 import { useEffect, useRef } from 'react';
+import { useStore, COLORS } from '../store/useStore';
 import gsap from 'gsap';
-import { useStore } from '../store/useStore';
+
+// Theme to gradient mapping
+const THEME_GRADIENTS = {
+    hero: {
+        color1: COLORS.charcoal,
+        color2: '#0a0f14',
+        color3: COLORS.burntOrange,
+        position: '70% 50%',
+    },
+    gaze: {
+        color1: '#0a0a0a',
+        color2: '#1a1a2e',
+        color3: COLORS.steelBlue,
+        position: '50% 40%',
+    },
+    canvas: {
+        color1: '#f5f5dc',
+        color2: '#e8e4d9',
+        color3: '#8B7355',
+        position: '30% 60%',
+    },
+    rain: {
+        color1: '#1a1a2e',
+        color2: '#2d2d44',
+        color3: COLORS.steelBlue,
+        position: '50% 70%',
+    },
+    party: {
+        color1: COLORS.charcoal,
+        color2: '#1a0a1a',
+        color3: '#ff1493',
+        position: '60% 50%',
+    },
+    halloween: {
+        color1: '#0a0a0a',
+        color2: COLORS.driedBlood,
+        color3: '#2a0a0a',
+        position: '50% 50%',
+    },
+    multiverse: {
+        color1: COLORS.lilacPastel,
+        color2: '#dda0dd',
+        color3: '#ffb6c1',
+        position: '50% 50%',
+    },
+    climax: {
+        color1: '#000000',
+        color2: '#050505',
+        color3: '#0a0a14',
+        position: '50% 50%',
+    },
+    sunset: {
+        color1: '#1a1410',
+        color2: '#8b4513',
+        color3: '#4a0080',
+        position: '50% 80%',
+    },
+};
 
 const GlobalBackground = () => {
-    const bgRef = useRef(null);
     const { currentTheme } = useStore();
+    const bgRef = useRef(null);
+    const particleCanvasRef = useRef(null);
+    const gradientRef = useRef({
+        color1: COLORS.charcoal,
+        color2: '#0a0f14',
+        color3: COLORS.burntOrange,
+        posX: 70,
+        posY: 50,
+    });
 
-    // Paleta de colores Premium (Desaturados y Elegantes)
-    const themes = {
-        hero: {
-            bg: '#f5f0eb',       // Beige Arena
-            blob1: '#e6dfd7',    // Crema
-            blob2: '#d4cdc4',    // Arena Claro
-            blob3: '#c7bfb5',    // Piedra
-        },
-        gaze: {
-            bg: '#1a1d23',       // Pizarra Oscura
-            blob1: '#2c3e50',    // Azul Petróleo
-            blob2: '#34495e',    // Gris Azulado
-            blob3: '#1a252f',    // Noche
-        },
-        canvas: {
-            bg: '#fdfbf7',       // Papel
-            blob1: '#f5efe6',    // Marfil
-            blob2: '#ebe4d8',    // Lienzo
-            blob3: '#e0d8ca',    // Pergamino
-        },
-        rain: {
-            bg: '#0f1419',       // Medianoche
-            blob1: '#1c3a4f',    // Azul Lluvia
-            blob2: '#2d5a7b',    // Océano Profundo
-            blob3: '#15242f',    // Tormenta
-        },
-        party: {
-            bg: '#0d1117',       // Negro Terciopelo
-            blob1: '#1a1f2e',    // Azul Noche
-            blob2: '#252a3d',    // Índigo Oscuro
-            blob3: '#161a26',    // Carbón
-        },
-        halloween: {
-            bg: '#0a0505',       // Negro Sangre
-            blob1: '#2a0a0a',    // Vino Tinto Profundo
-            blob2: '#3d0f0f',    // Carmesí Oscuro
-            blob3: '#1a0505',    // Borgoña Negro
-        },
-        climax: {
-            bg: '#000000',       // Negro Total
-            blob1: '#0a0a0a',    // Ébano
-            blob2: '#050505',    // Vacío
-            blob3: '#0f0f0f',    // Sombra
-        },
-        sunset: {
-            bg: '#1a1410',       // Café Oscuro
-            blob1: '#8b4513',    // Siena Tostada
-            blob2: '#a0522d',    // Terracota
-            blob3: '#6b3510',    // Caoba
-        },
-    };
-
+    // Particle system
     useEffect(() => {
-        const theme = themes[currentTheme] || themes.hero;
+        const canvas = particleCanvasRef.current;
+        if (!canvas) return;
 
-        gsap.to(bgRef.current, {
-            '--bg-color': theme.bg,
-            '--blob1-color': theme.blob1,
-            '--blob2-color': theme.blob2,
-            '--blob3-color': theme.blob3,
-            duration: 2,
-            ease: "power2.inOut"
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        let particles = [];
+
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Create floating dust particles
+        for (let i = 0; i < 50; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 0.5,
+                speedX: (Math.random() - 0.5) * 0.3,
+                speedY: (Math.random() - 0.5) * 0.3 - 0.1,
+                opacity: Math.random() * 0.3 + 0.1,
+            });
+        }
+
+        const render = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach((p) => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                // Wrap around
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+                ctx.fill();
+            });
+
+            animationId = requestAnimationFrame(render);
+        };
+        render();
+
+        return () => {
+            window.removeEventListener('resize', resize);
+            cancelAnimationFrame(animationId);
+        };
+    }, []);
+
+    // Interpolate gradient when theme changes
+    useEffect(() => {
+        if (!bgRef.current || !currentTheme) return;
+
+        const target = THEME_GRADIENTS[currentTheme] || THEME_GRADIENTS.hero;
+        const [posX, posY] = target.position.split(' ').map(p => parseInt(p));
+
+        gsap.to(gradientRef.current, {
+            color1: target.color1,
+            color2: target.color2,
+            color3: target.color3,
+            posX,
+            posY,
+            duration: 1.5,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                const { color1, color2, color3, posX, posY } = gradientRef.current;
+                bgRef.current.style.background = `
+                    radial-gradient(ellipse at ${posX}% ${posY}%, ${color3}40 0%, transparent 50%),
+                    radial-gradient(ellipse at ${100 - posX}% ${100 - posY}%, ${color2}30 0%, transparent 60%),
+                    linear-gradient(180deg, ${color1} 0%, ${color2} 100%)
+                `;
+            }
         });
+
     }, [currentTheme]);
 
     return (
-        <div
-            ref={bgRef}
-            className="fixed inset-0 z-[-1] overflow-hidden"
-            style={{
-                '--bg-color': themes.hero.bg,
-                '--blob1-color': themes.hero.blob1,
-                '--blob2-color': themes.hero.blob2,
-                '--blob3-color': themes.hero.blob3,
-                backgroundColor: 'var(--bg-color)',
-                transition: 'background-color 2s ease'
-            }}
-        >
-            {/* Mesh Gradient Blobs */}
+        <>
+            {/* Fixed background layer */}
             <div
-                className="absolute w-[150vw] h-[150vh] top-[-25vh] left-[-25vw] animate-mesh-rotate opacity-60"
+                ref={bgRef}
+                className="fixed inset-0 -z-10"
                 style={{
                     background: `
-                        radial-gradient(ellipse 80% 60% at 30% 20%, var(--blob1-color) 0%, transparent 60%),
-                        radial-gradient(ellipse 60% 80% at 70% 60%, var(--blob2-color) 0%, transparent 50%),
-                        radial-gradient(ellipse 70% 50% at 50% 80%, var(--blob3-color) 0%, transparent 55%)
-                    `,
-                    transition: 'all 2s ease'
+                        radial-gradient(ellipse at 70% 50%, ${COLORS.burntOrange}40 0%, transparent 50%),
+                        radial-gradient(ellipse at 30% 50%, #0a0f1430 0%, transparent 60%),
+                        linear-gradient(180deg, ${COLORS.charcoal} 0%, #0a0f14 100%)
+                    `
                 }}
             />
 
-            {/* Secondary Layer - Opposite Rotation */}
+            {/* Floating particles */}
+            <canvas
+                ref={particleCanvasRef}
+                className="fixed inset-0 -z-[9] pointer-events-none"
+            />
+
+            {/* Noise texture overlay */}
             <div
-                className="absolute w-[120vw] h-[120vh] top-[-10vh] left-[-10vw] animate-mesh-rotate-reverse opacity-40"
+                className="fixed inset-0 -z-[8] pointer-events-none opacity-[0.03]"
                 style={{
-                    background: `
-                        radial-gradient(ellipse 50% 70% at 60% 30%, var(--blob2-color) 0%, transparent 50%),
-                        radial-gradient(ellipse 70% 50% at 25% 70%, var(--blob1-color) 0%, transparent 45%)
-                    `,
-                    transition: 'all 2s ease'
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
                 }}
             />
 
-            {/* Grain Overlay for Premium Feel */}
+            {/* Vignette effect */}
             <div
-                className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                className="fixed inset-0 -z-[7] pointer-events-none"
                 style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+                    background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%)'
                 }}
             />
-        </div>
+        </>
     );
 };
 

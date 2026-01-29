@@ -2,21 +2,18 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import { COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const SpookySection = () => {
-    const { setCurrentTheme } = useStore();
+    const zoneRef = useZoneDetector('halloween');
     const containerRef = useRef(null);
     const titleRef = useRef(null);
     const photoRef = useRef(null);
     const marqueeRef = useRef(null);
-
-    useEffect(() => {
-        setCurrentTheme('halloween');
-    }, [setCurrentTheme]);
 
     // GSAP Pinning
     useEffect(() => {
@@ -59,12 +56,14 @@ const SpookySection = () => {
 
     return (
         <section
-            ref={containerRef}
-            className="relative h-screen w-full overflow-hidden flex flex-col justify-center"
-            style={{
-                background: "linear-gradient(180deg, #0a0505 0%, #1a0808 50%, #0a0505 100%)"
-            }}
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            className="relative h-screen w-full overflow-hidden flex flex-col justify-center bg-transparent"
         >
+            {/* Dark red overlay */}
+            <div
+                className="absolute inset-0 z-0"
+                style={{ background: `linear-gradient(180deg, ${COLORS.charcoal} 0%, ${COLORS.driedBlood}40 50%, ${COLORS.charcoal} 100%)` }}
+            />
             {/* Title */}
             <h2
                 ref={titleRef}

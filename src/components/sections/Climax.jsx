@@ -1,8 +1,8 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -10,34 +10,26 @@ gsap.registerPlugin(ScrollTrigger);
 const BG_WORDS = ["SIEMPRE", "JUNTOS", "FOREVER", "TE AMO", "ETERNO", "MI VIDA"];
 
 const Climax = () => {
-    const { setCurrentTheme } = useStore();
+    const zoneRef = useZoneDetector('climax');
     const containerRef = useRef(null);
     const photoRef = useRef(null);
-    const inkMaskRef = useRef(null);
     const [inkProgress, setInkProgress] = useState(0);
 
-    useEffect(() => {
-        setCurrentTheme('climax');
-    }, [setCurrentTheme]);
-
-    // GSAP Pinning with high friction (slow scroll)
     useEffect(() => {
         const ctx = gsap.context(() => {
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: containerRef.current,
                     start: "top top",
-                    end: "+=500%", // Very long pin for contemplation
+                    end: "+=500%",
                     pin: true,
-                    scrub: 3, // High friction - 3 second smooth
+                    scrub: 3,
                     onUpdate: (self) => {
-                        // Ink reveal progress
                         setInkProgress(self.progress);
                     }
                 }
             });
 
-            // Photo emerges slowly
             tl.fromTo(photoRef.current,
                 { scale: 0.7, opacity: 0 },
                 { scale: 1, opacity: 1 },
@@ -49,32 +41,26 @@ const Climax = () => {
         return () => ctx.revert();
     }, []);
 
-    // Generate ink mask path based on progress
     const generateInkPath = () => {
-        const p = Math.min(inkProgress * 1.5, 1); // Speed up reveal
-
-        // Organic blob that expands
+        const p = Math.min(inkProgress * 1.5, 1);
         const size = p * 100;
-        const wobble1 = Math.sin(p * 10) * 5;
-        const wobble2 = Math.cos(p * 8) * 8;
+        const w1 = Math.sin(p * 10) * 5;
+        const w2 = Math.cos(p * 8) * 8;
 
-        return `
-            M 50,${50 - size / 2}
-            Q ${50 + size / 2 + wobble1},${50 - size / 3} ${50 + size / 2},50
-            Q ${50 + size / 2 + wobble2},${50 + size / 3} 50,${50 + size / 2}
-            Q ${50 - size / 2 + wobble1},${50 + size / 3} ${50 - size / 2},50
-            Q ${50 - size / 2 + wobble2},${50 - size / 3} 50,${50 - size / 2}
-            Z
-        `;
+        return `M 50,${50 - size / 2} Q ${50 + size / 2 + w1},${50 - size / 3} ${50 + size / 2},50 Q ${50 + size / 2 + w2},${50 + size / 3} 50,${50 + size / 2} Q ${50 - size / 2 + w1},${50 + size / 3} ${50 - size / 2},50 Q ${50 - size / 2 + w2},${50 - size / 3} 50,${50 - size / 2} Z`;
     };
 
     return (
         <section
-            ref={containerRef}
-            className="relative h-screen w-full bg-black overflow-hidden"
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            id="climax"
+            className="relative h-screen w-full bg-transparent overflow-hidden"
         >
-            {/* Teleprompter background - infinite scroll */}
-            <div className="absolute inset-0 flex flex-col items-center pointer-events-none select-none overflow-hidden opacity-[0.08]">
+            {/* Dark overlay for climax */}
+            <div className="absolute inset-0 bg-black/90 z-0" />
+
+            {/* Teleprompter */}
+            <div className="absolute inset-0 flex flex-col items-center pointer-events-none select-none overflow-hidden opacity-[0.08] z-[1]">
                 <motion.div
                     className="flex flex-col items-center"
                     animate={{ y: ["0%", "-50%"] }}
@@ -91,44 +77,28 @@ const Climax = () => {
                 </motion.div>
             </div>
 
-            {/* Photo with ink reveal mask */}
+            {/* Photo with ink mask */}
             <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="relative">
-                    {/* Decorative frames */}
-                    <motion.div
-                        className="absolute -inset-6 border border-white/10"
-                        style={{ opacity: inkProgress }}
-                    />
-                    <motion.div
-                        className="absolute -inset-12 border border-white/5"
-                        style={{ opacity: inkProgress * 0.5 }}
-                    />
+                    <motion.div className="absolute -inset-6 border border-white/10" style={{ opacity: inkProgress }} />
+                    <motion.div className="absolute -inset-12 border border-white/5" style={{ opacity: inkProgress * 0.5 }} />
 
-                    {/* Photo container with SVG mask */}
                     <div
                         ref={photoRef}
                         className="relative w-[280px] md:w-[360px] aspect-[9/16] overflow-hidden"
                         style={{ opacity: 0 }}
                     >
-                        {/* The SVG mask */}
-                        <svg
-                            className="absolute inset-0 w-full h-full"
-                            viewBox="0 0 100 177.78"
-                            preserveAspectRatio="none"
-                        >
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 177.78" preserveAspectRatio="none">
                             <defs>
                                 <clipPath id="inkReveal">
-                                    <path ref={inkMaskRef} d={generateInkPath()} />
+                                    <path d={generateInkPath()} />
                                 </clipPath>
                             </defs>
                         </svg>
 
-                        {/* Photo clipped by ink mask */}
                         <div
                             className="w-full h-full"
-                            style={{
-                                clipPath: inkProgress > 0.7 ? 'none' : 'url(#inkReveal)'
-                            }}
+                            style={{ clipPath: inkProgress > 0.7 ? 'none' : 'url(#inkReveal)' }}
                         >
                             <img
                                 src={content.climax.mainPhoto}
@@ -137,20 +107,9 @@ const Climax = () => {
                             />
                         </div>
 
-                        {/* Subtle glow */}
-                        <div
-                            className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-purple-900/20 mix-blend-overlay pointer-events-none"
-                            style={{ opacity: inkProgress }}
-                        />
-
-                        {/* Inner frame */}
-                        <div
-                            className="absolute inset-3 border border-white/20 pointer-events-none"
-                            style={{ opacity: inkProgress }}
-                        />
+                        <div className="absolute inset-3 border border-white/20 pointer-events-none" style={{ opacity: inkProgress }} />
                     </div>
 
-                    {/* Date stamp */}
                     <motion.div
                         className="absolute -bottom-10 right-0 text-xs font-mono text-blue-400/50 tracking-widest"
                         style={{ opacity: inkProgress }}
@@ -168,17 +127,12 @@ const Climax = () => {
                 <p className="text-xs text-gray-600 font-mono uppercase tracking-[0.3em]">
                     🎵 Rosemary - Deftones
                 </p>
-                <p className="text-[10px] text-gray-700 mt-2 italic">
-                    Respira. Contempla.
-                </p>
             </motion.div>
 
             {/* Vignette */}
             <div
                 className="absolute inset-0 pointer-events-none z-30"
-                style={{
-                    background: "radial-gradient(ellipse at center, transparent 40%, black 100%)"
-                }}
+                style={{ background: "radial-gradient(ellipse at center, transparent 40%, black 100%)" }}
             />
         </section>
     );

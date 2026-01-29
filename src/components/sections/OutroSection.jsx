@@ -1,18 +1,16 @@
 import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
-import { useStore } from "../../store/useStore";
+import { useStore, COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 const OutroSection = () => {
-    const { setCurrentTheme, setGlobalVolume } = useStore();
+    const { setGlobalVolume } = useStore();
+    const zoneRef = useZoneDetector('sunset');
     const stripRef = useRef(null);
     const [displayedText, setDisplayedText] = useState("");
     const dedication = content.end?.dedication || "Para ti, que eres mi universo. Gracias por cada momento, cada risa, cada abrazo. Te amo infinito. — V.";
-
-    useEffect(() => {
-        setCurrentTheme('sunset');
-    }, [setCurrentTheme]);
 
     // Film strip animation
     useEffect(() => {
@@ -58,12 +56,20 @@ const OutroSection = () => {
         return () => window.removeEventListener("scroll", handleScroll);
     }, [setGlobalVolume]);
 
+    const containerRef = useRef(null);
+
     return (
-        <div className="relative text-white"
-            style={{
-                background: "linear-gradient(180deg, #0d1117 0%, #1a1410 20%, #8b4513 60%, #6b3a5c 100%)"
-            }}
+        <section
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            className="relative text-white bg-transparent"
         >
+            {/* Sunset gradient overlay */}
+            <div
+                className="absolute inset-0 z-0"
+                style={{
+                    background: `linear-gradient(180deg, ${COLORS.charcoal} 0%, ${COLORS.burntOrange}60 50%, #6b3a5c 100%)`
+                }}
+            />
             {/* --- PARTE 1: FILM STRIP (Random Memories) --- */}
             <section className="py-24 border-t border-white/10 overflow-hidden">
                 <h3 className="text-center text-xs font-mono text-gray-500 mb-8 uppercase tracking-[0.3em]">
@@ -189,7 +195,7 @@ const OutroSection = () => {
                     </motion.div>
                 </div>
             </section>
-        </div>
+        </section>
     );
 };
 

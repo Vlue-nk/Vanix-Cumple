@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import { COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const DualitySection = () => {
-    const { setCurrentTheme } = useStore();
+    const zoneRef = useZoneDetector('rain');
     const containerRef = useRef(null);
     const rainCanvasRef = useRef(null);
     const photo1Ref = useRef(null);
@@ -15,10 +16,6 @@ const DualitySection = () => {
     const video1Ref = useRef(null);
     const video2Ref = useRef(null);
     const textRef = useRef(null);
-
-    useEffect(() => {
-        setCurrentTheme('rain');
-    }, [setCurrentTheme]);
 
     // GSAP Pinning
     useEffect(() => {
@@ -127,11 +124,8 @@ const DualitySection = () => {
 
     return (
         <section
-            ref={containerRef}
-            className="relative h-screen w-full overflow-hidden"
-            style={{
-                background: "linear-gradient(180deg, #0f1419 0%, #1c2833 50%, #0d1117 100%)"
-            }}
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            className="relative h-screen w-full overflow-hidden bg-transparent"
         >
             {/* Rain */}
             <canvas

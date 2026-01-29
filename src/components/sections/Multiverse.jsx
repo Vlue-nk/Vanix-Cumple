@@ -2,59 +2,71 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import { useStore, COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Multiverse = () => {
-  const [scared, setScared] = useState(false);
-  const [bloodPhase, setBloodPhase] = useState(0); // 0: none, 1: dripping, 2: fade
-  const { setCurrentTheme, setCursorType } = useStore();
+  const {
+    isScareActive,
+    setIsScareActive,
+    setCursorType,
+    bloodPhase,
+    setBloodPhase,
+    lenisRef,
+    setCurrentTheme
+  } = useStore();
+
+  const zoneRef = useZoneDetector('multiverse');
   const containerRef = useRef(null);
   const balloonRef = useRef(null);
+
+  // Audio refs
   const screamAudio = useRef(null);
-  const distortedAudio = useRef(null);
-  const [proximity, setProximity] = useState(1); // 0 = close, 1 = far
-  const [balloonNoise, setBalloonNoise] = useState({ x: 0, y: 0 });
+  const popAudio = useRef(null);
+  const impactAudio = useRef(null);
+
+  // Balloon state
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [balloonOffset, setBalloonOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     screamAudio.current = new Audio("/assets/pennywise_laugh.mp3");
-    distortedAudio.current = new Audio("/assets/committed.mp3");
-    if (distortedAudio.current) {
-      distortedAudio.current.volume = 0.3;
-      distortedAudio.current.loop = true;
-    }
+    popAudio.current = new Audio("/assets/pop.mp3");
+    impactAudio.current = new Audio("/assets/impact.mp3");
   }, []);
 
-  // Balloon floating noise animation
+  // Mouse tracking for balloon repel effect
   useEffect(() => {
-    const noiseInterval = setInterval(() => {
-      setBalloonNoise({
-        x: Math.sin(Date.now() / 800) * 8 + Math.sin(Date.now() / 400) * 3,
-        y: Math.sin(Date.now() / 600) * 15 + Math.sin(Date.now() / 300) * 5
-      });
-    }, 50);
-    return () => clearInterval(noiseInterval);
-  }, []);
+    const handleMouseMove = (e) => {
+      if (!balloonRef.current || isScareActive) return;
 
-  // Mouse proximity detection
-  const handleMouseMove = (e) => {
-    if (!balloonRef.current || scared) return;
+      const rect = balloonRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
 
-    const rect = balloonRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.hypot(e.clientX - centerX, e.clientY - centerY);
-    const maxDistance = 400;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
+      const distance = Math.hypot(dx, dy);
 
-    const newProximity = Math.min(1, distance / maxDistance);
-    setProximity(newProximity);
+      // If mouse is within 200px, balloon moves away
+      if (distance < 200) {
+        const repelStrength = (200 - distance) / 200;
+        setBalloonOffset({
+          x: -dx * repelStrength * 0.3,
+          y: -dy * repelStrength * 0.3
+        });
+      } else {
+        setBalloonOffset({ x: 0, y: 0 });
+      }
 
-    // Distort audio when close
-    if (distortedAudio.current) {
-      distortedAudio.current.playbackRate = 0.5 + newProximity * 0.5;
-    }
-  };
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isScareActive]);
 
   // GSAP Pinning
   useEffect(() => {
@@ -73,164 +85,176 @@ const Multiverse = () => {
     return () => ctx.revert();
   }, []);
 
-  const handleScream = () => {
-    if (screamAudio.current) {
-      screamAudio.current.volume = 1.0;
-      screamAudio.current.play();
-    }
-    if (distortedAudio.current) {
-      distortedAudio.current.pause();
+  const triggerBloodSequence = () => {
+    // === STATE 2: THE SCARE ===
+
+    // Block scroll immediately
+    setIsScareActive(true);
+
+    // POP sound
+    if (popAudio.current) {
+      popAudio.current.volume = 0.9;
+      popAudio.current.play().catch(() => { });
     }
 
-    setScared(true);
-    setCurrentTheme('halloween');
+    // Scream + Impact at MAX volume after tiny delay
+    setTimeout(() => {
+      if (screamAudio.current) {
+        screamAudio.current.volume = 1.0;
+        screamAudio.current.play().catch(() => { });
+      }
+      if (impactAudio.current) {
+        impactAudio.current.volume = 1.0;
+        impactAudio.current.play().catch(() => { });
+      }
+    }, 50);
 
+    // Vibrate
     if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
 
-    // Blood sequence
-    setTimeout(() => setBloodPhase(1), 600);
-    setTimeout(() => setBloodPhase(2), 2500);
+    // === STATE 3: BLOOD TRANSITION (After 500ms of Pennywise) ===
     setTimeout(() => {
-      setScared(false);
+      // Start blood covering
+      setBloodPhase(1);
+    }, 500);
+
+    // === THE MAGIC SWAP (When fully red) ===
+    setTimeout(() => {
+      setBloodPhase(2); // Full coverage
+
+      // While user sees only red, teleport to Climax
+      if (lenisRef) {
+        lenisRef.scrollTo('#climax', { immediate: true });
+      } else {
+        // Fallback
+        const climaxEl = document.getElementById('climax');
+        if (climaxEl) {
+          window.scrollTo({ top: climaxEl.offsetTop, behavior: 'instant' });
+        }
+      }
+
+      // Change theme to climax
+      setCurrentTheme('climax');
+
+    }, 1500);
+
+    // === THE REVEAL (Blood slides down) ===
+    setTimeout(() => {
+      setBloodPhase(3);
+    }, 2500);
+
+    // === CLEANUP ===
+    setTimeout(() => {
       setBloodPhase(0);
+      setIsScareActive(false);
     }, 4000);
   };
 
   return (
-    <section
-      ref={containerRef}
-      className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden"
-      onMouseMove={handleMouseMove}
-      style={{
-        background: "linear-gradient(180deg, #fce4ec 0%, #e8f5e9 50%, #fff8e1 100%)"
-      }}
-    >
-      {/* Cute deco - fades with proximity */}
-      <div className="absolute top-10 left-10 transition-opacity duration-300" style={{ opacity: proximity * 0.5 }}>
-        <img src="/assets/cooky_stand.webp" alt="Cooky" className="h-20" />
-      </div>
-      <div className="absolute bottom-10 right-10 transition-opacity duration-300" style={{ opacity: proximity * 0.5 }}>
-        <img src="/assets/snoopy_perfil.webp" alt="Snoopy" className="h-16" />
-      </div>
-
-      {/* Darkness overlay - increases when close to balloon */}
-      <div
-        className="absolute inset-0 bg-black pointer-events-none transition-opacity duration-300 z-10"
-        style={{ opacity: (1 - proximity) * 0.6 }}
-      />
-
-      {/* The Balloon */}
-      {!scared && (
+    <>
+      <section
+        ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+        id="multiverse"
+        className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-transparent"
+      >
+        {/* Light pastel overlay */}
         <div
-          ref={balloonRef}
-          className="relative z-20 cursor-pointer"
-          onMouseEnter={() => setCursorType("balloon")}
-          onMouseLeave={() => setCursorType("default")}
-          onClick={handleScream}
+          className="absolute inset-0 z-0"
           style={{
-            transform: `translate(${balloonNoise.x}px, ${balloonNoise.y}px)`,
-            filter: `saturate(${0.5 + proximity * 0.5})`
+            background: `linear-gradient(180deg, ${COLORS.lilacPastel}90 0%, #dda0dd90 50%, ${COLORS.lilacPastel}90 100%)`
           }}
-        >
-          {/* Wrong shadow - doesn't match physics */}
-          <div
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-8 bg-black/30 rounded-full blur-xl"
-            style={{
-              transform: `translateX(${-balloonNoise.x * 1.5}px) scale(${1 + (1 - proximity) * 0.3})`
-            }}
-          />
+        />
 
-          {/* Balloon with vibration on proximity */}
-          <motion.img
-            src="/assets/pennywise_balloon.webp"
-            alt="Globo"
-            className="w-48 md:w-64"
-            animate={{
-              scale: [1, 1.05, 1],
-              rotate: proximity < 0.3 ? [-2, 2, -2] : 0
-            }}
-            transition={{
-              scale: { repeat: Infinity, duration: 1.2 },
-              rotate: { repeat: Infinity, duration: 0.1 }
-            }}
-          />
-
-          {/* Warning - more urgent when close */}
-          <motion.p
-            className="text-center mt-6 font-mono text-lg tracking-[0.3em] transition-colors"
-            style={{ color: proximity < 0.5 ? "#ff0000" : "#9ca3af" }}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: proximity < 0.5 ? 0.3 : 2 }}
-          >
-            NO TOCAR
-          </motion.p>
+        {/* Cute decorations */}
+        <div className="absolute top-8 left-8 opacity-60 z-10">
+          <img src="/assets/cooky_stand.webp" alt="Cooky" className="h-16" />
         </div>
-      )}
+        <div className="absolute bottom-8 right-8 opacity-60 z-10">
+          <img src="/assets/snoopy_perfil.webp" alt="Snoopy" className="h-14" />
+        </div>
 
-      {/* JUMPSCARE - Instant cut (0ms) */}
-      <AnimatePresence>
-        {scared && (
+        {/* THE BALLOON - Complex behavior */}
+        {!isScareActive && (
           <motion.div
-            className="fixed inset-0 z-[9999] bg-black flex items-center justify-center overflow-hidden"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            ref={balloonRef}
+            className="relative cursor-pointer z-20"
+            onMouseEnter={() => setCursorType("balloon")}
+            onMouseLeave={() => setCursorType("default")}
+            onClick={triggerBloodSequence}
+            style={{
+              x: balloonOffset.x,
+              y: balloonOffset.y
+            }}
+            transition={{ type: "spring", stiffness: 100, damping: 15 }}
           >
-            {/* White strobe flash */}
+            {/* Float animation */}
             <motion.div
-              className="absolute inset-0 bg-white z-10"
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-            />
+              animate={{ y: [0, -15, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            >
+              {/* Heartbeat animation */}
+              <motion.img
+                src="/assets/pennywise_balloon.webp"
+                alt="Globo"
+                className="w-56 md:w-72 drop-shadow-2xl"
+                animate={{
+                  scale: [1, 1.06, 1, 1.06, 1],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.2,
+                  ease: "easeInOut",
+                  times: [0, 0.2, 0.4, 0.6, 1]
+                }}
+              />
+            </motion.div>
 
-            {/* Pennywise - aggressive shake */}
+            {/* Warning text */}
+            <motion.p
+              className="text-center mt-8 font-mono text-xl tracking-[0.2em]"
+              style={{ color: COLORS.charcoal }}
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
+              No toques el globo
+            </motion.p>
+          </motion.div>
+        )}
+      </section>
+
+      {/* JUMPSCARE OVERLAY (Pennywise) */}
+      <AnimatePresence>
+        {isScareActive && bloodPhase < 2 && (
+          <motion.div
+            className="fixed inset-0 z-[9998] flex items-center justify-center overflow-hidden"
+            style={{ background: COLORS.charcoal }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+          >
+            {/* Pennywise with shake */}
             <motion.img
               src="/assets/pennywise_face.webp"
-              className="w-full h-full object-cover md:object-contain"
+              className="w-full h-full object-cover"
+              initial={{ scale: 1.5, opacity: 0 }}
               animate={{
-                scale: 1.3,
-                x: [0, -15, 15, -15, 0],
-                y: [0, 8, -8, 8, 0]
+                scale: 1.2,
+                opacity: 1,
+                x: [0, -15, 15, -15, 15, -10, 10, 0],
+                y: [0, 8, -8, 8, -8, 5, -5, 0],
               }}
               transition={{
-                x: { repeat: Infinity, duration: 0.05 },
-                y: { repeat: Infinity, duration: 0.06 }
+                scale: { duration: 0.15 },
+                opacity: { duration: 0.1 },
+                x: { duration: 0.4, ease: "linear" },
+                y: { duration: 0.4, ease: "linear" }
               }}
             />
-
-            {/* Liquid Blood SVG */}
-            {bloodPhase >= 1 && (
-              <svg
-                className="absolute inset-0 w-full h-full z-20"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-              >
-                <motion.path
-                  fill="#8B0000"
-                  initial={{
-                    d: "M0,0 L100,0 Q95,2 90,0 Q80,3 70,0 Q60,2 50,0 Q40,3 30,0 Q20,2 10,0 Q5,3 0,0 Z"
-                  }}
-                  animate={{
-                    d: "M0,0 L100,0 L100,100 L0,100 Z"
-                  }}
-                  transition={{ duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
-                />
-              </svg>
-            )}
-
-            {/* Fade to black */}
-            {bloodPhase >= 2 && (
-              <motion.div
-                className="absolute inset-0 bg-black z-30"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1 }}
-              />
-            )}
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+    </>
   );
 };
 

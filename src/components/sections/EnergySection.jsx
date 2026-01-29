@@ -1,21 +1,19 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useStore } from "../../store/useStore";
+import { useStore, COLORS } from "../../store/useStore";
+import useZoneDetector from "../../hooks/useZoneDetector";
 import { content } from "../../data/content";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const EnergySection = () => {
-    const { setCurrentTheme, setCursorType, setGlobalVolume } = useStore();
+    const { setCursorType, setGlobalVolume } = useStore();
+    const zoneRef = useZoneDetector('party');
     const containerRef = useRef(null);
     const lightTrailRef = useRef(null);
     const gridRef = useRef(null);
     const titleRef = useRef(null);
-
-    useEffect(() => {
-        setCurrentTheme('party');
-    }, [setCurrentTheme]);
 
     // GSAP Pinning
     useEffect(() => {
@@ -131,8 +129,8 @@ const EnergySection = () => {
 
     return (
         <section
-            ref={containerRef}
-            className="relative h-screen w-full overflow-hidden bg-black"
+            ref={(el) => { containerRef.current = el; zoneRef.current = el; }}
+            className="relative h-screen w-full overflow-hidden bg-transparent"
         >
             {/* Light trail canvas */}
             <canvas
