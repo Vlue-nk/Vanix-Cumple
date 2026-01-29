@@ -23,15 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ignorar archivos grandes
-*.mp4
-*.webp
-*.jpeg
-*.jpg
-*.png
-
-# Dependencias y builds
-node_modules
-dist
-dist-ssr
-*.local
