@@ -5,35 +5,83 @@ import { useStore } from '../store/useStore';
 const CustomCursor = () => {
     const cursorRef = useRef(null);
     const followerRef = useRef(null);
+    const textRef = useRef(null);
     const { cursorType } = useStore();
 
     useEffect(() => {
         const cursor = cursorRef.current;
         const follower = followerRef.current;
 
-        // Movimiento básico (ratón)
         const moveCursor = (e) => {
             gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0 });
-            gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.15 }); // Lag suave
+            gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.15 });
         };
 
         window.addEventListener('mousemove', moveCursor);
         return () => window.removeEventListener('mousemove', moveCursor);
     }, []);
 
-    // Reacciones visuales basadas en el estado
+    // Reactive cursor states
     useEffect(() => {
         const follower = followerRef.current;
+        const text = textRef.current;
 
-        if (cursorType === 'hover') {
-            gsap.to(follower, { scale: 3, backgroundColor: 'rgba(255, 255, 255, 0.1)', mixBlendMode: 'difference' });
-        } else if (cursorType === 'eye') {
-            // Aquí podrías cargar un SVG de ojo o cambiar forma
-            gsap.to(follower, { scale: 1, backgroundColor: '#2E5CFF' }); // Neon Blue
-        } else if (cursorType === 'balloon') {
-            gsap.to(follower, { scale: 0.5, backgroundColor: '#FF0000' }); // Red
-        } else {
-            gsap.to(follower, { scale: 1, backgroundColor: 'white', mixBlendMode: 'normal' });
+        switch (cursorType) {
+            case 'hover':
+                gsap.to(follower, {
+                    scale: 3,
+                    backgroundColor: 'transparent',
+                    borderColor: 'rgba(255,255,255,0.5)',
+                    mixBlendMode: 'difference'
+                });
+                if (text) text.textContent = '';
+                break;
+
+            case 'play':
+                gsap.to(follower, {
+                    scale: 4,
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                    borderColor: 'transparent',
+                    mixBlendMode: 'normal'
+                });
+                if (text) {
+                    text.textContent = '▶ PLAY';
+                    text.style.color = '#000';
+                }
+                break;
+
+            case 'balloon':
+                gsap.to(follower, {
+                    scale: 3,
+                    backgroundColor: 'rgba(255,0,0,0.8)',
+                    borderColor: 'transparent',
+                    mixBlendMode: 'normal'
+                });
+                if (text) {
+                    text.textContent = '🏃 RUN';
+                    text.style.color = '#fff';
+                }
+                break;
+
+            case 'eye':
+                gsap.to(follower, {
+                    scale: 2,
+                    backgroundColor: '#2E5CFF',
+                    borderColor: 'transparent',
+                    mixBlendMode: 'normal'
+                });
+                if (text) text.textContent = '';
+                break;
+
+            default:
+                gsap.to(follower, {
+                    scale: 1,
+                    backgroundColor: 'transparent',
+                    borderColor: 'white',
+                    mixBlendMode: 'normal'
+                });
+                if (text) text.textContent = '';
+                break;
         }
     }, [cursorType]);
 
@@ -47,8 +95,13 @@ const CustomCursor = () => {
             {/* Seguidor fluido (anillo o forma) */}
             <div
                 ref={followerRef}
-                className="fixed top-0 left-0 w-8 h-8 border border-white rounded-full pointer-events-none z-[9998] -translate-x-1/2 -translate-y-1/2 transition-colors duration-300"
-            />
+                className="fixed top-0 left-0 w-8 h-8 border border-white rounded-full pointer-events-none z-[9998] -translate-x-1/2 -translate-y-1/2 transition-colors duration-300 flex items-center justify-center"
+            >
+                <span
+                    ref={textRef}
+                    className="text-[8px] font-mono font-bold uppercase tracking-tight whitespace-nowrap"
+                />
+            </div>
         </>
     );
 };

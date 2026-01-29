@@ -4,6 +4,7 @@ import { useStore } from "../store/useStore";
 
 const Preloader = () => {
   const [count, setCount] = useState(0);
+  const [loaded, setLoaded] = useState(false);
   const { setIsLoading } = useStore();
 
   useEffect(() => {
@@ -11,7 +12,6 @@ const Preloader = () => {
       setCount((prev) => {
         if (prev >= 19) {
           clearInterval(timer);
-          setTimeout(() => setIsLoading(false), 1500); // Pausa dramática en 19
           return 19;
         }
         return prev + 1;
@@ -20,6 +20,31 @@ const Preloader = () => {
 
     return () => clearInterval(timer);
   }, [setIsLoading]);
+
+  useEffect(() => {
+    // Cuando el contador llegue a 19, habilitamos el botón ENTER
+    if (count === 19) setLoaded(true);
+  }, [count]);
+
+  const handleEnter = () => {
+    // Inicializamos el audio context (requerido por autoplay policies)
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      setIsLoading(false);
+      return;
+    }
+
+    const audioContext = new AudioContextCtor();
+    audioContext
+      .resume()
+      .then(() => {
+        setIsLoading(false); // Aquí recién quitamos el preloader
+      })
+      .catch(() => {
+        // Si falla, igual dejamos entrar (no bloqueamos la app)
+        setIsLoading(false);
+      });
+  };
 
   return (
     <motion.div
@@ -65,6 +90,21 @@ const Preloader = () => {
         >
           Ready to celebrate, Vania?
         </motion.p>
+
+        {/* BOTÓN ENTER (Solo aparece cuando carga) */}
+        <AnimatePresence>
+          {loaded && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              onClick={handleEnter}
+              className="mt-10 px-8 py-3 bg-white text-black font-bold text-xl uppercase tracking-widest hover:bg-neon-blue hover:text-white transition-colors rounded-full z-50 pointer-events-auto"
+            >
+              Enter Vaniaverse
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

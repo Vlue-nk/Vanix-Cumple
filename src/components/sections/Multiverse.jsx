@@ -1,209 +1,152 @@
-import { useState, useEffect, useRef } from 'react';
-import gsap from 'gsap';
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { content } from "../../data/content";
+import { useStore } from "../../store/useStore";
 
-/**
- * Multiverse Section - "VANIAVERSE"
- * BT21 x Pennywise Interactive Experience
- * 
- * Features:
- * - Pastel background with animated Cooky
- * - Floating balloon interaction
- * - Click trigger: background flash, Pennywise reveal, shocked Cooky
- */
-const Multiverse = ({ data }) => {
-    const [isTriggered, setIsTriggered] = useState(false);
-    const [showPennywise, setShowPennywise] = useState(false);
-    const [bgColor, setBgColor] = useState('#e6e6fa');
+const Multiverse = () => {
+  const [scared, setScared] = useState(false);
+  const [showBlood, setShowBlood] = useState(false);
+  const [fadeToBlack, setFadeToBlack] = useState(false);
+  const { setCurrentTheme, setCursorType } = useStore();
+  const screamAudio = useRef(null);
 
-    const cookyRef = useRef(null);
-    const balloonRef = useRef(null);
-    const pennywiseRef = useRef(null);
-    const audioRef = useRef(null);
+  useEffect(() => {
+    screamAudio.current = new Audio(content.pennywiseScare?.scream || "/assets/pennywise_laugh.mp3");
+  }, []);
 
-    useEffect(() => {
-        // Preload laugh sound
-        audioRef.current = new Audio('/assets/pennywise_laugh.mp3');
+  const handleScream = () => {
+    if (screamAudio.current) {
+      screamAudio.current.volume = 1.0;
+      screamAudio.current.play();
+    }
+    setScared(true);
+    setCurrentTheme('halloween');
 
-        // Cooky running animation (left to right loop)
-        if (cookyRef.current && !isTriggered) {
-            gsap.to(cookyRef.current, {
-                x: '100vw',
-                duration: 8,
-                repeat: -1,
-                ease: 'linear',
-                modifiers: {
-                    x: (x) => {
-                        return parseFloat(x) % window.innerWidth + 'px';
-                    }
-                }
-            });
-        }
+    // Vibración del navegador (si es compatible)
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
 
-        // Balloon floating animation (bottom to top)
-        if (balloonRef.current && !isTriggered) {
-            gsap.fromTo(
-                balloonRef.current,
-                { y: '100vh' },
-                {
-                    y: '-20vh',
-                    duration: 12,
-                    repeat: -1,
-                    ease: 'linear',
-                }
-            );
-        }
-    }, [isTriggered]);
+    // Secuencia de efectos
+    setTimeout(() => setShowBlood(true), 800);
+    setTimeout(() => setFadeToBlack(true), 2500);
+    setTimeout(() => {
+      setScared(false);
+      setShowBlood(false);
+      setFadeToBlack(false);
+    }, 4000);
+  };
 
-    const handleBalloonClick = () => {
-        if (isTriggered) return;
+  return (
+    <section className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        background: "linear-gradient(180deg, #fce4ec 0%, #e8f5e9 50%, #fff8e1 100%)"
+      }}
+    >
+      {/* Cute deco - BT21 characters */}
+      <div className="absolute top-10 left-10 opacity-50">
+        <img src={content.multiverse?.cooky || "/assets/cooky_stand.webp"} alt="Cooky" className="h-20" />
+      </div>
+      <div className="absolute bottom-10 right-10 opacity-50">
+        <img src={content.preloader?.snoopy || "/assets/snoopy_perfil.webp"} alt="Snoopy" className="h-16" />
+      </div>
 
-        setIsTriggered(true);
-
-        // 1. Hide balloon with pop effect
-        gsap.to(balloonRef.current, {
-            scale: 0,
-            opacity: 0,
-            duration: 0.2,
-            ease: 'back.in',
-        });
-
-        // 2. Change background to blood red instantly
-        setBgColor('#8a0303');
-
-        // 3. Play laugh sound
-        if (audioRef.current) {
-            audioRef.current.play().catch(err => console.log('Audio failed:', err));
-        }
-
-        // 4. Show Pennywise with violent shake
-        setShowPennywise(true);
-
-        setTimeout(() => {
-            if (pennywiseRef.current) {
-                gsap.fromTo(
-                    pennywiseRef.current,
-                    { scale: 0.5, opacity: 0 },
-                    {
-                        scale: 1,
-                        opacity: 1,
-                        duration: 0.1,
-                        ease: 'power4.out',
-                    }
-                );
-
-                // Violent shake animation
-                gsap.to(pennywiseRef.current, {
-                    x: '+=15',
-                    duration: 0.05,
-                    repeat: 10,
-                    yoyo: true,
-                    ease: 'power1.inOut',
-                });
-            }
-        }, 100);
-
-        // 5. Hide Pennywise after shake
-        setTimeout(() => {
-            setShowPennywise(false);
-            // Reset background to pastel after a moment
-            setTimeout(() => setBgColor('#e6e6fa'), 500);
-        }, 600);
-    };
-
-    return (
-        <section
-            id={data?.id || 'multiverse'}
-            className="relative min-h-screen w-full overflow-hidden flex items-center justify-center transition-colors duration-200"
-            style={{ backgroundColor: bgColor }}
+      {/* GLOBO (Grande, Latiendo) */}
+      {!scared && (
+        <motion.div
+          className="cursor-pointer z-20 group relative"
+          onMouseEnter={() => setCursorType("balloon")}
+          onMouseLeave={() => setCursorType("default")}
+          onClick={handleScream}
         >
-            {/* Title */}
-            <div className="absolute top-20 left-0 right-0 text-center z-10">
-                <h2 className="font-serif text-6xl md:text-8xl lg:text-9xl font-bold text-blood-red">
-                    {data?.title || 'VANIAVERSE'}
-                </h2>
-                {data?.subtitle && (
-                    <p className="font-sans text-xl md:text-2xl text-black-main/70 mt-4">
-                        {data.subtitle}
-                    </p>
-                )}
-            </div>
+          {/* Balloon with heartbeat */}
+          <motion.img
+            src={content.multiverse?.balloon || "/assets/pennywise_balloon.webp"}
+            alt="Globo"
+            className="w-56 md:w-72 drop-shadow-2xl"
+            animate={{ scale: [1, 1.08, 1, 1.08, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+          />
 
-            {/* Cooky Character - Running or Shocked */}
-            <div
-                ref={cookyRef}
-                className="absolute bottom-32 -left-32 z-20"
-                style={{
-                    width: '120px',
-                    height: '120px',
-                }}
-            >
-                <img
-                    src={isTriggered ? data?.assets?.reactionChar || '/assets/cooky_shocked.png' : data?.assets?.mainChar || '/assets/cooky_run.png'}
-                    alt="Cooky"
-                    className="w-full h-full object-contain"
-                    style={{
-                        filter: isTriggered
-                            ? 'drop-shadow(0 0 20px rgba(255, 61, 0, 0.8))'
-                            : 'drop-shadow(0 0 15px rgba(255, 61, 0, 0.4))',
-                    }}
-                />
-            </div>
+          {/* Warning text */}
+          <motion.p
+            className="text-center mt-8 font-mono text-gray-400 text-lg tracking-[0.3em] group-hover:text-red-600 transition-colors"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            NO TOCAR
+          </motion.p>
 
-            {/* Floating Balloon - Clickable */}
-            {!isTriggered && (
-                <div
-                    ref={balloonRef}
-                    onClick={handleBalloonClick}
-                    className="absolute left-1/2 -translate-x-1/2 cursor-pointer hover:scale-110 transition-transform z-30"
-                    style={{
-                        width: '100px',
-                        height: '140px',
-                    }}
+          {/* Cursor hint */}
+          <p className="text-center mt-2 text-xs text-red-400 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest">
+            🏃 RUN
+          </p>
+        </motion.div>
+      )}
+
+      {/* JUMPSCARE OVERLAY */}
+      <AnimatePresence>
+        {scared && (
+          <motion.div
+            className="fixed inset-0 z-[9999] bg-black flex items-center justify-center overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Pennywise Face - Aggressive shake */}
+            <motion.img
+              src={content.multiverse?.scareFace || "/assets/pennywise_face.webp"}
+              className="w-full h-full object-cover md:object-contain"
+              initial={{ scale: 0.3, rotate: -10 }}
+              animate={{
+                scale: [1.3, 1.2, 1.3, 1.2],
+                rotate: [0, -3, 3, -3, 0],
+                x: [0, -10, 10, -10, 0],
+                y: [0, 5, -5, 5, 0]
+              }}
+              transition={{
+                scale: { duration: 0.3, ease: "easeOut" },
+                rotate: { repeat: Infinity, duration: 0.1 },
+                x: { repeat: Infinity, duration: 0.05 },
+                y: { repeat: Infinity, duration: 0.07 }
+              }}
+            />
+
+            {/* Blood SVG Dripping */}
+            {showBlood && (
+              <motion.div
+                className="absolute inset-0 z-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <svg
+                  className="absolute top-0 left-0 w-full h-full"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
                 >
-                    <img
-                        src={data?.assets?.trigger || '/assets/pennywise_balloon.png'}
-                        alt="Red Balloon"
-                        className="w-full h-full object-contain drop-shadow-2xl"
-                    />
-                </div>
+                  <motion.path
+                    d="M0,0 L100,0 L100,100 L0,100 Z"
+                    fill="#8B0000"
+                    initial={{ d: "M0,0 L100,0 Q90,-5 80,0 Q60,-3 40,0 Q20,-5 0,0 L0,0 Z" }}
+                    animate={{ d: "M0,0 L100,0 Q95,40 100,100 L0,100 Q5,40 0,0 Z" }}
+                    transition={{ duration: 1.5, ease: "easeIn" }}
+                  />
+                </svg>
+              </motion.div>
             )}
 
-            {/* Pennywise Face - Jump Scare */}
-            {showPennywise && (
-                <div
-                    ref={pennywiseRef}
-                    className="absolute inset-0 flex items-center justify-center z-50"
-                >
-                    <img
-                        src={data?.assets?.villain || '/assets/pennywise_face.png'}
-                        alt="Pennywise"
-                        className="w-96 h-96 object-contain"
-                        style={{
-                            filter: 'drop-shadow(0 0 60px rgba(138, 3, 3, 0.9))',
-                        }}
-                    />
-                </div>
+            {/* Fade to black */}
+            {fadeToBlack && (
+              <motion.div
+                className="absolute inset-0 bg-black z-20"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1.5 }}
+              />
             )}
-
-            {/* CSS Keyframes for smooth animations */}
-            <style jsx>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-30px);
-          }
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-          20%, 40%, 60%, 80% { transform: translateX(10px); }
-        }
-      `}</style>
-        </section>
-    );
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
 };
 
 export default Multiverse;

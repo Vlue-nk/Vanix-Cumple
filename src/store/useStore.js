@@ -13,6 +13,19 @@ export const useStore = create((set) => ({
     currentTrack: null,
     setCurrentTrack: (track) => set({ currentTrack: track }),
 
+    // Mute global
+    isMuted: false,
+    setIsMuted: (muted) => set({ isMuted: muted }),
+    toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
+
+    // Current Theme for GlobalBackground
+    currentTheme: 'hero',
+    setCurrentTheme: (theme) => set({ currentTheme: theme }),
+
+    // Global Volume for Audio Ducking
+    globalVolume: 1.0,
+    setGlobalVolume: (vol) => set({ globalVolume: vol }),
+
     // Trigger de efectos globales
     isGlitchActive: false,
     triggerGlitch: () => {

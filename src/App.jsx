@@ -5,6 +5,9 @@ import { AnimatePresence } from "framer-motion";
 // --- COMPONENTS ---
 import Preloader from "./components/Preloader";
 import CustomCursor from "./components/CustomCursor";
+import SoundManager from "./components/SoundManager";
+import GlobalBackground from "./components/GlobalBackground";
+import AudioControl from "./components/AudioControl";
 
 // --- SECTIONS ---
 import Hero from "./components/sections/Hero";           // Escena 1: Committed
@@ -25,7 +28,7 @@ function App() {
     useEffect(() => {
         // Manual Lenis implementation for React 19 / @studio-freight/lenis compatibility
         const lenis = new Lenis({
-            duration: 1.2,
+            duration: 1.8, // Slower for cinematic feel
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
             orientation: 'vertical',
             gestureOrientation: 'vertical',
@@ -47,6 +50,9 @@ function App() {
     return (
         <div className="relative font-sans bg-vania-black text-white selection:bg-neon-orange selection:text-white cursor-none">
             <CustomCursor />
+            <GlobalBackground />
+            <SoundManager />
+            <AudioControl />
 
             <AnimatePresence mode="wait">
                 {isLoading && <Preloader key="preloader" />}
